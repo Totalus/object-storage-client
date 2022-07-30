@@ -1,9 +1,6 @@
-import hashlib
-import sys
-import unittest
-import os
-from .src.SwiftClient import SwiftClient
-
+import hashlib, sys, unittest, os
+sys.path.append('src')
+import SwiftClient
 
 class TestCases(unittest.TestCase):
     container_name = None
@@ -18,8 +15,7 @@ class TestCases(unittest.TestCase):
         self.delete_object()
 
     def authentication(self):
-        self.swift = SwiftClient(self.storage_url, self.container_name)
-        self.assertTrue(self.swift.authenticate(), 'Authentication failed')
+        self.swift = SwiftClient.SwiftClient(self.storage_url, self.container_name)
 
     def upload_file(self):
         # Create a dummy file
@@ -63,7 +59,7 @@ class TestCases(unittest.TestCase):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print('Usage: python -m tests <storage-url> <container-name>')
+        print('Usage: python -m SwiftClient.tests <storage-url> <container-name>')
         exit()
     else:
         TestCases.container_name = sys.argv.pop()
