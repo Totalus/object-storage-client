@@ -1,7 +1,5 @@
 
-Python object storage client that provides a simple straightforward API to manage objects on various storage backend (AWS S3, OpenStack Swift, etc.).
-
-Providing a common API allows other projects to easily support multiple storage backend or easily change storage backend without needing to change the code.
+Python object storage client that provides a simple straightforward API to manage objects on various storage backend (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backend or change storage backend without needing to change the code.
 
 Storage backend currently supported:
 - OpenStack Swift
@@ -18,7 +16,7 @@ Storage backend currently supported:
 ```py
 from universal_osc import SwiftClient
 
-client = SwiftClient(storage_url="", container_name="my-container")
+client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>", container_name="my-container")
 ```
 
 The client will automatically pick up the credentials if they are in the environment (if you run `source openrc.sh`). You can also provide them manually:
@@ -28,7 +26,7 @@ The client will automatically pick up the credentials if they are in the environ
 client = SwiftClient(storage_url="", container_name="my-container",
     credentials={
         # Required credentials (example)
-        "OS_AUTH_URL": "https://<your-provider-openstack-swift-domain>/v3/"
+        "OS_AUTH_URL": "https://<auth-domain>/v3/"
         "OS_USER_DOMAIN_NAME": "Default"
         "OS_USERNAME": "<your-openstack-username>"
         "OS_PASSWORD": "<your-openstack-password>"

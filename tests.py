@@ -59,7 +59,7 @@ class TestCases(unittest.TestCase):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print('Usage: python -m SwiftClient.tests <storage-url> <container-name>')
+        print('Usage: python -m tests <storage-url> <container-name>')
         exit()
     else:
         TestCases.container_name = sys.argv.pop()
