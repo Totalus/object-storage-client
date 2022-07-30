@@ -10,9 +10,10 @@ from ObjectStorageClient import ObjectStorageClient
 
 class SwiftClient(ObjectStorageClient):
 
-    def __init__(self, storage_url: str, container_name: str) -> None:
+    def __init__(self, storage_url: str, container_name: str, credentials: dict = {}) -> None:
         self.OBJECT_STORAGE_URL = storage_url
         self.use_container(container_name)
+        self.authenticate(credentials)
 
     def read_credentials_from_env(self, credentials: dict):
         """
