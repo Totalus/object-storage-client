@@ -9,5 +9,6 @@ setup(
     version=VERSION,
     name=PACKAGE_NAME,
     author=AUTHOR,
-    package_dir={PACKAGE_NAME: 'src'}
+    url="https://github.com/Totalus/object-storage-client",
+    package_dir={ 'universal_osc': 'src'}
 )
