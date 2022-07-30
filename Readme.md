@@ -1,9 +1,10 @@
 
-Python object storage client that provides a simple straightforward API to manage objects on various storage backend (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backend or change storage backend without needing to change the code.
+# Universal Object Storage Client
+
+The purpose of thie project is to provide a python client that provides a simple straightforward API to manage objects on various storage backend (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backend or change storage backend without needing to change the code and avoid vendor lockdown.
 
 Storage backend currently supported:
 - OpenStack Swift
-
 
 ## Install / Upgrade
 
