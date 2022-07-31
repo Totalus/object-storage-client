@@ -1,5 +1,21 @@
 
 from abc import abstractclassmethod, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass
+class ContainerInfo:
+    name: str
+    bytes: int          # Total  number of bytes in the container
+    count: int          # Number of objects in the container
+
+@dataclass
+class ObjectInfo:
+    name: str
+    bytes: int
+    hash: str
+    content_type: str
+    metadata: dict[str, str]|None
 
 
 class ObjectStorageClient:
@@ -11,12 +27,27 @@ class ObjectStorageClient:
     #   Common implementation
     #
 
-    def use_container(self, container_name: str):
-        """Set the target container name"""
+    def use_container(self, container_name: str, create=False) -> bool:
+        """
+        Set the target container name
+
+        @param `create` create the container if it does not already exist
+        @return True on success, False if the container does not exist and cannot be created
+        """
         self.container_name = container_name
 
+        # Does the container exist ?
+        containers = self.container_list(self.container_name)
+        if self.container_name in [c.name for c in containers]:
+            return True # Container exists
+        else: # Container does not exist
+            if create:
+                return self.container_create(self.container_name)
+            else:
+                return False
+
     def object_path(self, object_name: str, container_name = None) -> str:
-        """Build the object path"""
+        """Build the object path that can be appened to the object storage url"""
         path = object_name if object_name.startswith('/') else '/' + object_name
         if not container_name: container_name = self.container_name;
         if container_name != None:
@@ -30,28 +61,47 @@ class ObjectStorageClient:
             ok = self.object_upload(file, object_name, meta)    
         return ok
 
+    def download_file(self, object_name: str, outputFilePath: str) -> bool:
+        """Download a file"""
+        with open(outputFilePath, 'wb') as file:
+            ok = self.object_download(object_name, file)
+        return ok
+
     #
     #   Abstract functions to implement when subclassing
     #
 
     # Container related actions
     
-    def container_create(self, container_name: str):
-        """Create a new container"""
+    def container_create(self, container_name: str) -> bool:
+        """
+        Create a new container. This request might take few seconds to complete.
+
+        @param `container_name` The new container name
+        @return True on success, False on failure (ex: already exists)
+        """
         raise NotImplementedError
 
-    def container_list(self):
-        """List available containers"""
+    def container_list(self, prefix: str = None) -> list[ContainerInfo]:
+        """
+        List available containers
+
+        @param prefix Set to return only containers with that prefix
+        @return A list of dictionaries with info on each the containers (name, size, object count, ...)
+        """
         raise NotImplementedError
 
+    def container_delete(self, container_name: str) -> bool:
+        """
+        Delete an empty container
+
+        @return True if the container was deleted or does not exist
+        """
+        raise NotImplementedError
 
     # Object related actions
 
-    def object_get_metadata(self, object_name: str) -> dict:
-        """Return an objet's metadata (key-value string pairs where the key are lowercased)"""
-        raise NotImplementedError
-
-    def object_get_info(self, object_name: str) -> dict:
+    def object_info(self, object_name: str) -> ObjectInfo:
         """Return an objet's info (including metadata)"""
         raise NotImplementedError
 
@@ -67,9 +117,9 @@ class ObjectStorageClient:
         """Upload a stream, optionally specifying some metadata to apply to the object"""
         raise NotImplementedError
 
-    def object_download(self, object_name: str, outputFilePath: str = None) -> bool:
+    def object_download(self, object_name: str, stream) -> bool:
         """ 
-        Download an object. Saves it to the specified outputFilePath if specified, otherwise print the content to stdout.
+        Download an object and write to the output stream
         """
         raise NotImplementedError
 
@@ -77,7 +127,7 @@ class ObjectStorageClient:
         fetch_metadata = False,
         prefix: str = None,
         delimiter: str = None,
-    ) -> dict:
+    ) -> list[ObjectInfo]:
         """List available objects in the selected container"""
         raise NotImplementedError
 

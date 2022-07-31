@@ -7,12 +7,12 @@
 import os, requests, sys
 
 from ObjectStorageClient import ObjectStorageClient
+from src.ObjectStorageClient import ContainerInfo, ObjectInfo
 
 class SwiftClient(ObjectStorageClient):
 
-    def __init__(self, storage_url: str, container_name: str, credentials: dict = {}) -> None:
+    def __init__(self, storage_url: str, credentials: dict = {}) -> None:
         self.OBJECT_STORAGE_URL = storage_url
-        self.use_container(container_name)
         self.authenticate(credentials)
 
     def read_credentials_from_env(self, credentials: dict):
@@ -78,14 +78,40 @@ class SwiftClient(ObjectStorageClient):
             print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
             return False
 
-    def object_get_metadata(self, object_name: str, container_name: str = None) -> dict:
+
+    def container_list(self, prefix: str = None) -> list[ContainerInfo]:
+        url = f"{self.OBJECT_STORAGE_URL}"
+        params = {"format":"json"}
+        if prefix: params['prefix'] = prefix
+        r = requests.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        objList = r.json()
+        return [ContainerInfo(o.get('name'), o.get('bytes'), o.get('count')) for o in objList]
+
+    def container_create(self, container_name: str) -> bool:
+        url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
+        headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
+        r = requests.put(url, headers=headers)
+        if r.status_code != 201:
+            print('container_create() status code:', r.status_code)
+        return r.status_code == 201
+
+    def container_delete(self, container_name: str) -> bool:
+        url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
+        headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
+        r = requests.delete(url, headers=headers)
+        if r.status_code != 204 and r.status_code != 404:
+            print('container_delete() status code:', r.status_code)
+        return r.status_code == 204 or r.status_code == 404
+
+    def _object_get_metadata(self, object_name: str, container_name: str = None) -> dict:
         """Return an objet's metadata (key-value string pairs where the key is lowercased)"""
         if not container_name: container_name = self.container_name;
-        info = self.object_get_info(object_name, container_name)
-        if info:
-           return info.get('meta', {})
+        info = self.object_info(object_name, container_name)
+        if info is not None:
+           return info.metadata
 
-    def object_get_info(self, object_name: str, container_name: str = None) -> dict:
+
+    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:
         """Return an objet's info (including metadata)"""
         if not container_name: container_name = self.container_name;
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
@@ -96,13 +122,13 @@ class SwiftClient(ObjectStorageClient):
                 meta[h.removeprefix('X-Object-Meta-').lower()] = r.headers[h]
         
         if r.status_code == 200:
-            return {
-                "meta": meta,
-                "bytes": int(r.headers['Content-Length']),
-                "name": object_name,
-                "md5": r.headers['Etag'],
-                "last_modified": r.headers['Last-Modified']
-            }
+            return ObjectInfo(
+                name=object_name,
+                bytes=int(r.headers['Content-Length']),
+                hash=r.headers['Etag'],
+                content_type=r.headers['Content-Type'],
+                metadata=meta
+            )
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({object_name}) got status code: {r.status_code} {r.content}")
 
@@ -121,13 +147,13 @@ class SwiftClient(ObjectStorageClient):
 
     def object_set_metadata(self, object_name: str, key: str, value: str) -> bool:
         """Sets a single metadata key-value pair on the specified object"""
-        meta = self.object_get_metadata(object_name)
+        meta = self._object_get_metadata(object_name)
         meta[key] = value
         return self.object_replace_metadata(object_name, meta)
 
     def object_delete_metadata(self, object_name: str, key: str) -> dict:
         """Delete a single element in the metadata on the specified object"""
-        meta = self.object_get_metadata(object_name)
+        meta = self._object_get_metadata(object_name)
         if key in meta:
             del meta[key]
         return self.object_replace_metadata(object_name, meta)
@@ -141,12 +167,6 @@ class SwiftClient(ObjectStorageClient):
             path = path.replace('//', '/')
         return path
 
-    def upload_file(self, localFilePath: str, object_name: str, meta: dict={}) -> bool:
-        """Upload a file, optionally specifying some metadata to apply to the object"""
-        with open(localFilePath, 'rb') as file:
-            ok = self.object_upload(file, object_name, meta)    
-        return ok
-
     def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
         """Upload a stream, optionally specifying some metadata to apply to the object"""
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
@@ -158,22 +178,13 @@ class SwiftClient(ObjectStorageClient):
             print('Upload status code:', r.status_code)
         return r.status_code == 201
 
-    def object_download(self, object_name, outputFilePath = None):
-        """ 
-        Download an object. Saves it to the specified outputFilePath if specified, otherwise prints to stdout.
-        """
+    def object_download(self, object_name: str, stream) -> bool:
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
         r = requests.get(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN}, stream=True)
         if r.status_code == 200:
-            if outputFilePath:
-                with open(outputFilePath, 'wb') as file:
-                    for chunk in r.iter_content():
-                        file.write(chunk)
-                return True
-            else:
-                for chunk in r.iter_content():
-                    sys.stdout.buffer.write(chunk)
-                return True
+            for chunk in r.iter_content():
+                stream.write(chunk)
+            return True
         else:
             print(f"Request status is {r.status_code} with content {r.content}")
             return False # Could not download
@@ -182,7 +193,7 @@ class SwiftClient(ObjectStorageClient):
         fetch_metadata = False,
         prefix: str = None,
         delimiter: str = None,
-    ) -> dict:
+    ) -> list[ObjectInfo]:
         """Return the object list"""
         # See https://docs.openstack.org/api-ref/object-store/?expanded=show-container-details-and-list-objects-detail#show-container-details-and-list-objects
         
@@ -192,12 +203,14 @@ class SwiftClient(ObjectStorageClient):
         if delimiter: params['delimiter'] = delimiter
         r = requests.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
 
-        objList = r.json()
-        if fetch_metadata:
-            for obj in objList:
-                obj['meta'] = self.object_get_metadata(obj['name'], self.container_name)
+        objects = r.json()
+        objects = [ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None) for o in objects]
 
-        return objList
+        if fetch_metadata:
+            for obj in objects:
+                obj.metadata = self._object_get_metadata(obj.name, self.container_name)
+
+        return objects
 
     def object_delete(self, object_name):
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"

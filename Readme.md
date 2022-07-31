@@ -45,7 +45,7 @@ Once the storage backend is configured, the api used is the same for any storage
 
 ```py
 # Select the bucket to work on
-client.use_container('my-bucket') 
+client.use_container('my-bucket')
 
 # Return the list of objects in this bucket
 client.object_list() 
@@ -56,7 +56,17 @@ client.upload_file(localFilePath='./my-file.txt', object_name='subdir/my-file.tx
 # Update the 'version' metadata to '1.1'
 client.object_set_metadata('subdir/my-file.txt' 'version', '1.1')
 
-# and more...
+# Upload a file (equivalent to client.upload_file())
+with open('file.txt', 'rb') as f:
+    client.object_upload(f, 'my-object.txt')
+
+# Download a file (equivalent to client.download_file())
+with open('file.txt', 'wb') as f:
+    client.object_downalod('my-object.txt', f)
+
+# Send file content to stdout
+client.object_download('my-object.txt', sys.stdout.buffer)
+    
 ```
 
 Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full list of available methods and their description.
