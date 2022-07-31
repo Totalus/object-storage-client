@@ -91,10 +91,12 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def container_delete(self, container_name: str) -> bool:
+    def container_delete(self, container_name: str, force: bool = False) -> bool:
         """
-        Delete an empty container
+        Delete a container. It will not delete a container that contain objects unless `force`
+        is set to True.
 
+        @param `force` Set to True to delete a container even if it is not empty.
         @return True if the container was deleted or does not exist
         """
         raise NotImplementedError
@@ -124,11 +126,18 @@ class ObjectStorageClient:
         raise NotImplementedError
 
     def object_list(self,
-        fetch_metadata = False,
+        container_name: str = None,
+        fetch_metadata: bool = False,
         prefix: str = None,
         delimiter: str = None,
     ) -> list[ObjectInfo]:
-        """List available objects in the selected container"""
+        """
+        List available objects in the specified container. If `container_name` is not specified,
+        lists objects in the active container (see `use_container()`)
+
+        @param `prefix` : if set, filter the results that start with the given prefix
+        @param `fetch_metadata` : if `True`, also fetch the objects metadata
+        """
         raise NotImplementedError
 
     def object_delete(self, object_name):

@@ -95,11 +95,17 @@ class SwiftClient(ObjectStorageClient):
             print('container_create() status code:', r.status_code)
         return r.status_code == 201
 
-    def container_delete(self, container_name: str) -> bool:
+    def container_delete(self, container_name: str, force: bool = False) -> bool:
+        if force:
+            # First delete all objects in the container, otherwise the delete request will fail
+            objects = self.object_list(container_name=container_name)
+            for o in objects:
+                self.object_delete(self.object_path(o.name, container_name))
+
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         r = requests.delete(url, headers=headers)
-        if r.status_code != 204 and r.status_code != 404:
+        if r.status_code not in [204, 404, 409]:
             print('container_delete() status code:', r.status_code)
         return r.status_code == 204 or r.status_code == 404
 
@@ -190,14 +196,16 @@ class SwiftClient(ObjectStorageClient):
             return False # Could not download
 
     def object_list(self,
-        fetch_metadata = False,
+        container_name: str = None,
+        fetch_metadata: bool = False,
         prefix: str = None,
         delimiter: str = None,
     ) -> list[ObjectInfo]:
-        """Return the object list"""
         # See https://docs.openstack.org/api-ref/object-store/?expanded=show-container-details-and-list-objects-detail#show-container-details-and-list-objects
+
+        if container_name is None: container_name = self.container_name
         
-        url = f"{self.OBJECT_STORAGE_URL}/{self.container_name}"
+        url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         params = {"format":"json"}
         if prefix: params['prefix'] = prefix
         if delimiter: params['delimiter'] = delimiter
@@ -208,7 +216,7 @@ class SwiftClient(ObjectStorageClient):
 
         if fetch_metadata:
             for obj in objects:
-                obj.metadata = self._object_get_metadata(obj.name, self.container_name)
+                obj.metadata = self._object_get_metadata(obj.name, container_name)
 
         return objects
 
