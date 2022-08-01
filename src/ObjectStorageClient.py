@@ -12,12 +12,15 @@ class ContainerInfo:
 
 @dataclass
 class ObjectInfo:
-    name: str
-    bytes: int
-    hash: str
+    name: str           # Name of the object
+    bytes: int          # Size
+    hash: str           # Hash (usualy md5)
     content_type: str
     metadata: dict[str, str]|None
 
+@dataclass
+class SubdirInfo:
+    subdir: str         # Directory subpath
 
 class ObjectStorageClient:
     """Abstract class that defines a generic object storage API. Subclass this class to support a new object storage backend."""
@@ -139,16 +142,19 @@ class ObjectStorageClient:
         prefix: str = None,
         delimiter: str = None,
         container_name: str = None,
-    ) -> list[ObjectInfo]:
+    ) -> list[ObjectInfo|SubdirInfo]:
         """
         List available objects in the specified container. If `container_name` is not specified,
-        lists objects in the active container (see `use_container()`)
+        lists objects in the active container (see `use_container()`).
+
+        If `delimiter` is set, it may return a mix of ObjectInfo and SubdirInfo that represent the objects
+        and subdir found following the prefix. The delimiter allows to browse as if it was a file system.
 
         @param `prefix` : if set, filter the results that start with the given prefix
         @param `fetch_metadata` : if `True`, also fetch the objects metadata
         """
         raise NotImplementedError
 
-    def object_delete(self, object_name):
+    def object_delete(self, object_name: str, container_name: str = None) -> bool:
         """Delete the specified object"""
         raise NotImplementedError

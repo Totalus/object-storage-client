@@ -1,9 +1,9 @@
-import hashlib, sys, unittest, os, time
-import io
+import hashlib, sys, unittest, os, time, io
 
-from src.ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient
-sys.path.append('src')
-import SwiftClient
+from ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient
+from SwiftClient import SwiftClient
+
+
 class TestCases(unittest.TestCase):
     container_name = None
     storage_url = None
@@ -13,7 +13,7 @@ class TestCases(unittest.TestCase):
         self.container_name = f'universal-ocs-test-container-{round(time.time())}' # Test container name
 
         # Create the client
-        self.client : ObjectStorageClient = SwiftClient.SwiftClient(self.storage_url)
+        self.client : ObjectStorageClient = SwiftClient(self.storage_url)
         
         # Run tests
         self.container_create()
@@ -58,6 +58,8 @@ class TestCases(unittest.TestCase):
     def container_delete(self):
         print(f'Deleting container {self.container_name}')
         ok = self.client.container_delete(self.container_name)
+        self.assertFalse(ok, 'container_delete() should not delete non-empty container if force is set to False')
+        ok = self.client.container_delete(self.container_name, force=True)
         self.assertTrue(ok, 'container_delete() should return True on success')
         ok = self.client.container_delete('universal-osc-unexisting-container-12345677898765453265265264325456524524625')
         self.assertTrue(ok, 'container_delete() should return True if container does not exist')
@@ -76,17 +78,23 @@ class TestCases(unittest.TestCase):
     def object_list(self):
         print('Listing objects')
         objects = self.client.object_list(fetch_metadata=True)
-        self.assertTrue(isinstance(objects, list), 'object_list() should return a list')
-        self.assertTrue(isinstance(objects[0], ObjectInfo), 'object_list() should return a list of ObjectInfo')
+        self.assertIsInstance(objects, list, 'object_list() should return a list')
+        print(objects)
+        self.assertIsInstance(objects[0], ObjectInfo, 'object_list() should return a list of ObjectInfo')
         self.assertIn(self.object_name, [c.name for c in objects], 'created container not in the containter list')
         objects = self.client.object_list(prefix=self.object_name)
         self.assertEqual(len(objects), 1, 'object_list(<prefix>) should return only the objects that start with <prefix>')
         # Note that the key is case insensitive and should be lower case when returned by the api
+        
+        # TODO: Should return some SubdirInfo if delimiter is set
+        self.client.object_upload(io.BytesIO(os.urandom(100)), 'foo/bar/cor') # Add a file in subdir
+        objects = self.client.object_list(fetch_metadata=True, delimiter='/')
+        print(objects)
 
     def object_info(self):
         print('Checking object info')
         info = self.client.object_info(self.object_name)
-        self.assertTrue(isinstance(info, ObjectInfo), 'object_info() should return an instance of ObjectInfo')
+        self.assertIsInstance(info, ObjectInfo, 'object_info() should return an instance of ObjectInfo')
         self.assertDictEqual(info.metadata, { 'mykey1': 'myValue1'}, 'object_upload() should correctly set the object metadata')
         info = self.client.object_info('unexisting-object')
         self.assertIsNone(info, 'object_info() should return None if the object does not exist')

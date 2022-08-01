@@ -6,7 +6,7 @@
 
 import os, requests
 
-from .ObjectStorageClient import *
+from ObjectStorageClient import *
 
 class SwiftClient(ObjectStorageClient):
 
@@ -113,18 +113,20 @@ class SwiftClient(ObjectStorageClient):
         return r.status_code == 201
 
     def container_delete(self, container_name: str, force: bool = False) -> bool:
+        print('force', force)
         if force:
             # First delete all objects in the container, otherwise the delete request will fail
             objects = self.object_list(container_name=container_name)
+            print(objects)
             for o in objects:
-                self.object_delete(self.object_path(o.name, container_name))
+                self.object_delete(o.name, container_name)
 
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         r = requests.delete(url, headers=headers)
-        if r.status_code not in [204, 404, 409]:
+        if r.status_code not in [204, 404]:
             print('container_delete() status code:', r.status_code)
-        return r.status_code == 204 or r.status_code == 404
+        return r.status_code in [204, 404]
 
     def _object_get_metadata(self, object_name: str, container_name: str = None) -> dict:
         """Return an objet's metadata (key-value string pairs where the key is lowercased)"""
@@ -232,15 +234,23 @@ class SwiftClient(ObjectStorageClient):
             return []
         else:
             objects = r.json()
-            objects = [ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None) for o in objects]
+            for i in range(0, len(objects)):
+                o = objects[i]
+                if 'subdir' in o:
+                    objects[i] = SubdirInfo(o['subdir'])
+                else:
+                    objects[i] = ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None)
 
             if fetch_metadata:
                 for obj in objects:
-                    obj.metadata = self._object_get_metadata(obj.name, container_name)
+                    if isinstance(obj, ObjectInfo):
+                        obj.metadata = self._object_get_metadata(obj.name, container_name)
 
             return objects
 
-    def object_delete(self, object_name):
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
+    def object_delete(self, object_name: str, container_name=None) -> bool:
+        if container_name is None: container_name = self.container_name
+        print('object_delete()', object_name)
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         r = requests.delete(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         return r.status_code == 204 or r.status_code == 404
