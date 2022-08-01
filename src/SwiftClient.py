@@ -12,7 +12,7 @@ from src.ObjectStorageClient import ContainerInfo, ObjectInfo
 class SwiftClient(ObjectStorageClient):
 
     def __init__(self, storage_url: str, credentials: dict = {}) -> None:
-        self.OBJECT_STORAGE_URL = storage_url
+        self.OBJECT_STORAGE_URL = storage_url[0:-1] if storage_url.endswith('/') else storage_url # Remove trailing /
         self.authenticate(credentials)
 
     def read_credentials_from_env(self, credentials: dict):
@@ -78,6 +78,24 @@ class SwiftClient(ObjectStorageClient):
             print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
             return False
 
+    def container_info(self, container_name: str = None) -> ContainerInfo:
+        if not container_name: container_name = self.container_name;
+        url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
+        r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        meta = {}
+        for h in r.headers:
+            if h.startswith('X-Object-Meta-'):
+                meta[h.removeprefix('X-Object-Meta-').lower()] = r.headers[h]
+        
+        if r.status_code == 204:
+            return ContainerInfo(
+                name=container_name,
+                count=r.headers['X-Container-Object-Count'],
+                bytes=r.headers['Content-Length']
+            )
+        elif r.status_code != 404:
+            print(f"ERROR: get_object_info({container_name}) got status code: {r.status_code} {r.content}")
+
 
     def container_list(self, prefix: str = None) -> list[ContainerInfo]:
         url = f"{self.OBJECT_STORAGE_URL}"
@@ -91,7 +109,7 @@ class SwiftClient(ObjectStorageClient):
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         r = requests.put(url, headers=headers)
-        if r.status_code != 201:
+        if r.status_code not in [201, 202]:
             print('container_create() status code:', r.status_code)
         return r.status_code == 201
 
@@ -196,10 +214,10 @@ class SwiftClient(ObjectStorageClient):
             return False # Could not download
 
     def object_list(self,
-        container_name: str = None,
         fetch_metadata: bool = False,
         prefix: str = None,
         delimiter: str = None,
+        container_name: str = None,
     ) -> list[ObjectInfo]:
         # See https://docs.openstack.org/api-ref/object-store/?expanded=show-container-details-and-list-objects-detail#show-container-details-and-list-objects
 
@@ -211,14 +229,17 @@ class SwiftClient(ObjectStorageClient):
         if delimiter: params['delimiter'] = delimiter
         r = requests.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
 
-        objects = r.json()
-        objects = [ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None) for o in objects]
+        if r.status_code != 200:
+            return []
+        else:
+            objects = r.json()
+            objects = [ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None) for o in objects]
 
-        if fetch_metadata:
-            for obj in objects:
-                obj.metadata = self._object_get_metadata(obj.name, container_name)
+            if fetch_metadata:
+                for obj in objects:
+                    obj.metadata = self._object_get_metadata(obj.name, container_name)
 
-        return objects
+            return objects
 
     def object_delete(self, object_name):
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"

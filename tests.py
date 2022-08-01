@@ -17,6 +17,7 @@ class TestCases(unittest.TestCase):
         
         # Run tests
         self.container_create()
+        self.container_info()
         self.container_list()
 
         self.client.use_container(self.container_name)
@@ -37,6 +38,13 @@ class TestCases(unittest.TestCase):
         print(f'Creating container {self.container_name}')
         ok = self.client.container_create(self.container_name)
         self.assertTrue(ok)
+
+    def container_info(self):
+        print(f'Fetching container info')
+        info = self.client.container_info(self.container_name)
+        self.assertIsInstance(info, ContainerInfo, 'container_info() should return a ContainerInfo instance')
+        info = self.client.container_info(self.container_name + '123')
+        self.assertIsNone(info, 'container_info() should return None if the container does not exist')
 
     def container_list(self):
         print(f'Listing containers')
@@ -67,11 +75,11 @@ class TestCases(unittest.TestCase):
 
     def object_list(self):
         print('Listing objects')
-        objects = self.client.object_list(True)
+        objects = self.client.object_list(fetch_metadata=True)
         self.assertTrue(isinstance(objects, list), 'object_list() should return a list')
         self.assertTrue(isinstance(objects[0], ObjectInfo), 'object_list() should return a list of ObjectInfo')
         self.assertIn(self.object_name, [c.name for c in objects], 'created container not in the containter list')
-        objects = self.client.object_list(self.object_name)
+        objects = self.client.object_list(prefix=self.object_name)
         self.assertEqual(len(objects), 1, 'object_list(<prefix>) should return only the objects that start with <prefix>')
         # Note that the key is case insensitive and should be lower case when returned by the api
 
@@ -89,7 +97,7 @@ class TestCases(unittest.TestCase):
         ok = self.client.object_delete(self.object_name)
         self.assertTrue(ok, 'object_delete() should return true on success')
         
-        objects = self.client.object_list(self.object_name)
+        objects = self.client.object_list(prefix=self.object_name)
         self.assertEqual(len(objects), 0, 'object_delete() should delete the given object properly')
 
     def object_set_metadata(self):

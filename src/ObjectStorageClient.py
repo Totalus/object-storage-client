@@ -1,6 +1,7 @@
 
 from abc import abstractclassmethod, abstractmethod
 from dataclasses import dataclass
+from typing import Container
 
 
 @dataclass
@@ -101,6 +102,14 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
+    def container_info(self, container_name: str) -> ContainerInfo:
+        """
+        Fetch container information
+
+        @return ContainerInfo or None if the container does not exist
+        """
+        raise NotImplementedError
+
     # Object related actions
 
     def object_info(self, object_name: str) -> ObjectInfo:
@@ -126,10 +135,10 @@ class ObjectStorageClient:
         raise NotImplementedError
 
     def object_list(self,
-        container_name: str = None,
         fetch_metadata: bool = False,
         prefix: str = None,
         delimiter: str = None,
+        container_name: str = None,
     ) -> list[ObjectInfo]:
         """
         List available objects in the specified container. If `container_name` is not specified,
