@@ -4,10 +4,9 @@
 #   API Reference: https://docs.openstack.org/api-ref/object-store/
 #
 
-import os, requests, sys
+import os, requests
 
-from ObjectStorageClient import ObjectStorageClient
-from src.ObjectStorageClient import ContainerInfo, ObjectInfo
+from .ObjectStorageClient import *
 
 class SwiftClient(ObjectStorageClient):
 
