@@ -5,7 +5,7 @@ The purpose of thie project is to provide a python client that provides a simple
 
 Storage backend currently supported:
 - OpenStack Swift
-- AWS S3 (not yet, but plan to)
+- AWS S3 (not implemented yet)
 
 ## Install / Upgrade
 
@@ -45,17 +45,19 @@ The above credentials are required to authenticate to the storage backend and re
 Once the storage backend is configured, the api used is the same for any storage backend.
 
 ```py
-# Select the bucket to work on
+# Create a container
+client.container_create('my-bucket')
+
+# Select the container to work on
 client.use_container('my-bucket')
 
-# Return the list of objects in this bucket
-client.object_list() 
+# Return the list of objects in the selected container
+objects = client.object_list()
+for o in objects:
+    print(f"{o.name} ({o.size} bytes)")
 
-# Upload a file, set the metadata key 'version' to '1.0'
-client.upload_file(localFilePath='./my-file.txt', object_name='subdir/my-file.txt', meta={ 'version': '1.0' })
-
-# Update the 'version' metadata to '1.1'
-client.object_set_metadata('subdir/my-file.txt' 'version', '1.1')
+info = client.object_info(objects[0].name)
+print(f"metadata for {object[0].name} : {object[0].metadata}")
 
 # Upload a file (equivalent to client.upload_file())
 with open('file.txt', 'rb') as f:
@@ -67,11 +69,11 @@ with open('file.txt', 'wb') as f:
 
 # Send file content to stdout
 client.object_download('my-object.txt', sys.stdout.buffer)
-    
 ```
 
 Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full list of available methods and their description.
 
+
 ## Adding storage backend
 
-To add new storage backends, you simply need to subclass the ObjectStorageClient class and implement the abstract methods. The constructor of the subclass can be used to set the credentials.
+To add new storage backends, subclass the `ObjectStorageClient` class and implement the abstract methods. The constructor of the subclass can be used to set the credentials.
