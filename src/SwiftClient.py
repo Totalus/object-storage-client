@@ -6,7 +6,7 @@
 
 import os, requests
 
-from ObjectStorageClient import *
+from .ObjectStorageClient import *
 
 class SwiftClient(ObjectStorageClient):
 
