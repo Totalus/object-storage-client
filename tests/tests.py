@@ -1,8 +1,7 @@
 import hashlib, sys, unittest, os, time, io
 
-from ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient
-from SwiftClient import SwiftClient
-
+from src.ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient
+from src.SwiftClient import SwiftClient
 
 class TestCases(unittest.TestCase):
     container_name = None
@@ -79,7 +78,6 @@ class TestCases(unittest.TestCase):
         print('Listing objects')
         objects = self.client.object_list(fetch_metadata=True)
         self.assertIsInstance(objects, list, 'object_list() should return a list')
-        print(objects)
         self.assertIsInstance(objects[0], ObjectInfo, 'object_list() should return a list of ObjectInfo')
         self.assertIn(self.object_name, [c.name for c in objects], 'created container not in the containter list')
         objects = self.client.object_list(prefix=self.object_name)

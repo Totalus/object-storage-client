@@ -16,7 +16,7 @@ Storage backend currently supported:
 ### OpenStack Swift
 
 ```py
-from universal_osc import SwiftClient
+from obs_client import SwiftClient
 
 client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>", container_name="my-container")
 ```
@@ -77,3 +77,7 @@ Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full l
 ## Adding storage backend
 
 To add new storage backends, subclass the `ObjectStorageClient` class and implement the abstract methods. The constructor of the subclass can be used to set the credentials.
+
+## Tests
+
+`python -m test.tests <storage-url>`

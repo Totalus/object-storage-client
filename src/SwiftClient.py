@@ -113,11 +113,9 @@ class SwiftClient(ObjectStorageClient):
         return r.status_code == 201
 
     def container_delete(self, container_name: str, force: bool = False) -> bool:
-        print('force', force)
         if force:
             # First delete all objects in the container, otherwise the delete request will fail
             objects = self.object_list(container_name=container_name)
-            print(objects)
             for o in objects:
                 self.object_delete(o.name, container_name)
 
