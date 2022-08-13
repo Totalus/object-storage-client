@@ -7,15 +7,15 @@ from typing import Container
 @dataclass
 class ContainerInfo:
     name: str
-    bytes: int          # Total  number of bytes in the container
-    count: int          # Number of objects in the container
+    bytes: int|None          # Total  number of bytes in the container
+    count: int|None          # Number of objects in the container
 
 @dataclass
 class ObjectInfo:
     name: str           # Name of the object
-    bytes: int          # Size
-    hash: str           # Hash (usualy md5)
-    content_type: str
+    bytes: int|None     # Size
+    hash: str|None      # Hash (usualy md5)
+    content_type: str|None
     metadata: dict[str, str]|None
 
 @dataclass
@@ -41,8 +41,8 @@ class ObjectStorageClient:
         self.container_name = container_name
 
         # Does the container exist ?
-        containers = self.container_list(self.container_name)
-        if self.container_name in [c.name for c in containers]:
+        info = self.container_info(self.container_name)
+        if info is not None:
             return True # Container exists
         else: # Container does not exist
             if create:
@@ -71,6 +71,25 @@ class ObjectStorageClient:
             ok = self.object_download(object_name, file)
         return ok
 
+    def object_set_metadata(self, object_name: str, key: str, value: str) -> bool:
+        """Sets a single metadata key-value pair on the specified object"""
+        info = self.object_info(object_name)
+        if info is None:
+            return False
+        info.metadata[key] = value
+        return self.object_replace_metadata(object_name, info.metadata)
+
+    def object_delete_metadata(self, object_name: str, key: str) -> dict:
+        """Delete a single metadata key-value for the specified object"""
+        info = self.object_info(object_name)
+        if info is None:
+            return False
+        if key in info.metadata:
+            del info.metadata[key]
+            return self.object_replace_metadata(object_name, info.metadata)
+        else:
+            return True # Key not in the metadata
+
     #
     #   Abstract functions to implement when subclassing
     #
@@ -79,10 +98,10 @@ class ObjectStorageClient:
     
     def container_create(self, container_name: str) -> bool:
         """
-        Create a new container. This request might take few seconds to complete.
+        Create a new container
 
-        @param `container_name` The new container name
-        @return True on success, False on failure (ex: already exists)
+        @param `container_name` The name of the new container
+        @return frue on success, false on failure (ex: already exists)
         """
         raise NotImplementedError
 
@@ -105,7 +124,7 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def container_info(self, container_name: str) -> ContainerInfo:
+    def container_info(self, container_name: str) -> ContainerInfo|None:
         """
         Fetch container information
 
@@ -115,20 +134,28 @@ class ObjectStorageClient:
 
     # Object related actions
 
-    def object_info(self, object_name: str) -> ObjectInfo:
-        """Return an objet's info (including metadata)"""
+    def object_replace_metadata(self, object_name: str, metadata: dict = {}) -> bool:
+        """
+        Replace an object's metadata
+
+        @returns true on success, false on failure
+        """
         raise NotImplementedError
 
-    def object_set_metadata(self, object_name: str, key: str, value: str) -> bool:
-        """Sets a single metadata key-value pair on the specified object"""
-        raise NotImplementedError
+    def object_info(self, object_name: str) -> ObjectInfo|None:
+        """
+        Return an objet's info (including metadata)
 
-    def object_delete_metadata(self, object_name: str, key: str) -> dict:
-        """Delete a single metadata key-value for the specified object"""
+        @return ObjectInfo or None if the object does not exist
+        """
         raise NotImplementedError
 
     def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
-        """Upload a stream, optionally specifying some metadata to apply to the object"""
+        """
+        Upload a stream, optionally specifying some metadata to apply to the object
+
+        @return true on success, false on failure
+        """
         raise NotImplementedError
 
     def object_download(self, object_name: str, stream) -> bool:
