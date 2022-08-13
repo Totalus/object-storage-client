@@ -1,133 +1,152 @@
-import hashlib, sys, unittest, os, time, io
+import hashlib, sys, unittest, os, time, io, random, string
 
-from src.ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient
+from src.ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient, SubdirInfo
 from src.SwiftClient import SwiftClient
+
+def random_string(size: int = 10):
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size))
 
 class TestCases(unittest.TestCase):
     container_name = None
     storage_url = None
     object_name = 'test-object-123456789'
 
-    def test_suite(self):
-        self.container_name = f'universal-ocs-test-container-{round(time.time())}' # Test container name
+    def test_suite_v2(self):
+        container_prefix = "obs-client-test-container-"
+        container_name = f"{container_prefix}{random_string()}"
 
-        # Create the client
-        self.client : ObjectStorageClient = SwiftClient(self.storage_url)
-        
-        # Run tests
-        self.container_create()
-        self.container_info()
-        self.container_list()
+        client : ObjectStorageClient = SwiftClient(self.storage_url)
 
-        self.client.use_container(self.container_name)
+        # container_create()
+        print(f'Creating container')
+        self.assertTrue(client.container_create(container_name), "container_create() should return True when a container is created")
+        self.assertFalse(client.container_create(container_name), "container_create() should return False when a container already exists")
 
-        self.object_upload()
-        self.object_info()
-        self.object_list()
-
-        self.object_set_metadata()
-        self.object_delete_metadata()
-        self.object_download()
-        
-        self.object_delete()
-        self.container_delete()
-
-
-    def container_create(self):
-        print(f'Creating container {self.container_name}')
-        ok = self.client.container_create(self.container_name)
-        self.assertTrue(ok)
-
-    def container_info(self):
-        print(f'Fetching container info')
-        info = self.client.container_info(self.container_name)
+        # container_info()
+        print(f'Getting container info')
+        info = client.container_info(container_name)
         self.assertIsInstance(info, ContainerInfo, 'container_info() should return a ContainerInfo instance')
-        info = self.client.container_info(self.container_name + '123')
-        self.assertIsNone(info, 'container_info() should return None if the container does not exist')
+        self.assertEqual(info.name, container_name, 'container_info() should always return the right container name')
+        self.assertIsNone(client.container_info(container_name + '123'), "container_info() should return None if the container does not exist")
 
-    def container_list(self):
+        # container_list()
         print(f'Listing containers')
-        containers = self.client.container_list()
-        self.assertGreater(len(containers), 0, 'container_list() should not return an empty list')
-        self.assertTrue(isinstance(containers[0], ContainerInfo), 'container_list() should return a list of ContainerInfo')
-        self.assertIn(self.container_name, [c.name for c in containers], 'created container not in the containter list')
-        containers = self.client.container_list(self.container_name)
+        containers = client.container_list()
+        self.assertGreater(len(containers), 0, 'container_list() should not return an empty list when at least one container exists')
+        self.assertIsInstance(containers[0], ContainerInfo, 'container_list() should return a list of ContainerInfo')
+        self.assertIn(container_name, [c.name for c in containers], 'a created container should appear in the listed containers')
+        containers = client.container_list(container_name)
         self.assertEqual(len(containers), 1, 'container_list(<prefix>) should return only the containers that start with <prefix>')
 
-    def container_delete(self):
-        print(f'Deleting container {self.container_name}')
-        ok = self.client.container_delete(self.container_name)
-        self.assertFalse(ok, 'container_delete() should not delete non-empty container if force is set to False')
-        ok = self.client.container_delete(self.container_name, force=True)
-        self.assertTrue(ok, 'container_delete() should return True on success')
-        ok = self.client.container_delete('universal-osc-unexisting-container-12345677898765453265265264325456524524625')
-        self.assertTrue(ok, 'container_delete() should return True if container does not exist')
-        # TODO: Should not delete if container is not empty
+        # TODO: object_list(fetch_metadata=True)
 
-    def object_upload(self):
+        # Select active container
+        self.assertFalse(client.use_container(container_prefix + random_string(12)), 'use_container() should return false if container does not exist')
+        self.assertTrue(client.use_container(container_name), 'use_container() should return true on success')
+
+        # object_upload()
         print(f'Uploading object')
+        object_name = 'dir1' + '/' + random_string()
         size_bytes = 100
         data = io.BytesIO(os.urandom(size_bytes))
-        md5 = hashlib.md5()
-        md5.update(data.getvalue())
-        self.md5 = md5.digest().hex()
-        ok = self.client.object_upload(data, self.object_name, {'myKey1':'myValue1'})
-        self.assertTrue(ok, 'object_upload() should return true on success')
+        self.assertTrue(client.object_upload(data, object_name, meta={'Key1': 'Value1'}), 'object_upload() should return true on success')
 
-    def object_list(self):
-        print('Listing objects')
-        objects = self.client.object_list(fetch_metadata=True)
-        self.assertIsInstance(objects, list, 'object_list() should return a list')
-        self.assertIsInstance(objects[0], ObjectInfo, 'object_list() should return a list of ObjectInfo')
-        self.assertIn(self.object_name, [c.name for c in objects], 'created container not in the containter list')
-        objects = self.client.object_list(prefix=self.object_name)
-        self.assertEqual(len(objects), 1, 'object_list(<prefix>) should return only the objects that start with <prefix>')
-        # Note that the key is case insensitive and should be lower case when returned by the api
+        # object_info()
+        print(f'Getting object info')
+        self.assertIsNone(client.object_info(random_string(20)), 'object_info() should return None if the object does not exist in the container')
         
-        # TODO: Should return some SubdirInfo if delimiter is set
-        self.client.object_upload(io.BytesIO(os.urandom(100)), 'foo/bar/cor') # Add a file in subdir
-        objects = self.client.object_list(fetch_metadata=True, delimiter='/')
-        print(objects)
-
-    def object_info(self):
-        print('Checking object info')
-        info = self.client.object_info(self.object_name)
-        self.assertIsInstance(info, ObjectInfo, 'object_info() should return an instance of ObjectInfo')
-        self.assertDictEqual(info.metadata, { 'mykey1': 'myValue1'}, 'object_upload() should correctly set the object metadata')
-        info = self.client.object_info('unexisting-object')
-        self.assertIsNone(info, 'object_info() should return None if the object does not exist')
-
-
-    def object_delete(self):
-        print('Deleting object')
-        ok = self.client.object_delete(self.object_name)
-        self.assertTrue(ok, 'object_delete() should return true on success')
+        info = client.object_info(object_name)
+        self.assertIsInstance(info, ObjectInfo, 'object_info() should return an instance of ObjectInfo when the object exists')
+        self.assertEqual(info.name, object_name, 'object_info() should return the right object name')
+        self.assertEqual(info.bytes, size_bytes, 'object_info() should return the right object size')
         
-        objects = self.client.object_list(prefix=self.object_name)
-        self.assertEqual(len(objects), 0, 'object_delete() should delete the given object properly')
+        # md5 = hashlib.md5()
+        # md5.update(data.getvalue())
+        # md5 = md5.digest().hex()
+        # self.assertEqual(info.hash, md5, 'object_upload() should upload the file without tempering the data')
 
-    def object_set_metadata(self):
-        print('Adding metadata to object')
-        self.assertTrue(self.client.object_set_metadata(self.object_name, 'key2', 'value2'))
-        self.assertEqual(self.client.object_info(self.object_name).metadata,
-        {
-            'key2':'value2',
-            'mykey1': 'myValue1'
-        })
+        self.assertIsNotNone(info.hash, 'object_info() should return an ObjectInfo with "hash" value that is not None')
+        self.assertIsInstance(info.hash, str, 'object_info() should return an ObjectInfo with "hash" value that is a string')
+        self.assertTrue(info.hash, 'object_info() should return an ObjectInfo with "hash" value that is not empty')
 
-    def object_delete_metadata(self):
-        print('Deleting object metadata')
-        self.assertTrue(self.client.object_delete_metadata(self.object_name, 'mykey1'))
-        self.assertEqual(self.client.object_info(self.object_name).metadata, { 'key2':'value2' })
+        self.assertIsNotNone(info.content_type, 'object_info() should return an ObjectInfo with "content_type" value that is not None')
+        self.assertIsInstance(info.content_type, str, 'object_info() should return an ObjectInfo with "content_type" value that is a string')
+        self.assertTrue(info.content_type, 'object_info() should return an ObjectInfo with "content_type" value that is not empty')
 
-    def object_download(self):
-        data = io.BytesIO()
-        ok = self.client.object_download(self.object_name, data)
-        self.assertTrue(ok, 'object_download() should return true on success')
+        self.assertIsNotNone(info.metadata, 'object_info() should return an ObjectInfo with "metadata" value that is not None')
+        self.assertIsInstance(info.metadata, dict, 'object_info() should return an ObjectInfo with "metadata" value that is a string')
+        self.assertFalse('Key1' in info.metadata, 'object_upload() should make sure metadata keys are lowercase before uploading and/or object_list() should return lowercase metadata keys')
+        self.assertDictEqual(info.metadata, { 'key1': 'Value1' } , 'object_upload() should set the specified metadata')
+        
+        # play with metadata
+        print(f'Updating metadata')
+        self.assertFalse(client.object_replace_metadata(random_string(20), { 'Key2': 'Value2' }), 'object_replace_metadata() should return false if the object does not exist')
+        self.assertTrue(client.object_replace_metadata(object_name, { 'Key2': 'Value2' }), 'object_replace_metadata() should return true on success')
+        self.assertDictEqual(client.object_info(object_name).metadata, { 'key2': 'Value2' }, 'object_replace_metadata() should properly replace the objects metadata')
 
-        md5 = hashlib.md5()
-        md5.update(data.getvalue())
-        self.assertEqual(md5.digest().hex(), self.md5, 'object_download() and object_upload() should keep file integrity intact')
+        self.assertFalse(client.object_set_metadata(random_string(20), 'Key3', 'Value3'), 'object_set_metadata() should return false if the object does not exist')
+        self.assertTrue(client.object_set_metadata(object_name, 'Key3', 'Value3'), 'object_set_metadata() should return true on success')
+        self.assertDictEqual(client.object_info(object_name).metadata, { 'key2': 'Value2', 'key3': 'Value3' }, 'object_set_metadata() should properly set the objects metadata without deleting the existing metatada')
+
+        self.assertFalse(client.object_delete_metadata(random_string(20), 'key2'), 'object_delete_metadata() should return false if the object does not exist')
+        self.assertTrue(client.object_delete_metadata(object_name, 'uknownn-key'), 'object_delete_metadata() should return true if the key does not exist in the metadata')
+        self.assertTrue(client.object_delete_metadata(object_name, 'key2'), 'object_delete_metadata() should return true on success')
+        self.assertDictEqual(client.object_info(object_name).metadata, { 'key3': 'Value3' }, 'object_delete_metadata() should properly delete the specified key without changing the other metadata values')
+
+        # Upload more objects
+        print(f'Uploading more objects')
+        client.object_upload(stream=io.BytesIO(os.urandom(100)), object_name='dir1/' + random_string())
+        client.object_upload(stream=io.BytesIO(os.urandom(100)), object_name='dir1/subdir1/' + random_string())
+        client.object_upload(stream=io.BytesIO(os.urandom(100)), object_name='dir1/subdir2/' + random_string())
+
+        self.assertEqual(client.object_list(delimiter='/'), [SubdirInfo('dir1/')], 'object_list() with delimiter="/" should return a subdir')
+        objects = client.object_list(prefix='dir1/', delimiter='/')
+        self.assertIn(SubdirInfo(subdir='dir1/subdir2/'), objects, 'object_list() with delimiter and prefix should return the subdirs')
+
+        # Download an object
+        print(f'Downloading objects')
+        downloaded_data = io.BytesIO()
+        self.assertFalse(client.object_download(random_string(20), downloaded_data), 'object_download() should return false if object does not exist')
+        self.assertTrue(client.object_download(object_name, downloaded_data), 'object_download() should return true on success')
+        self.assertEqual(downloaded_data.getvalue(), data.getvalue(), 'object_download() should download the same data that was uploaded with object_upload()')
+
+        # Upload a file
+        # Download a file
+
+        # Delete container
+        self.assertFalse(client.container_delete(container_name), 'container_delete() should not delete a container that is not empty')
+
+        # Delete objects
+        print('Deleting objects')
+        objects = client.object_list()
+
+        self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true on success')
+        self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true if the file does not exist')
+
+        for o in objects:
+            client.object_delete(o.name)
+
+        self.assertTrue(client.container_delete(container_name), 'container_delete() should return true on success')
+        self.assertTrue(len(client.object_list()) == 0, 'object_delete() should properly remove objects')
+
+        print('Force delete a container')
+        # Create a non-empty container
+        container_name = container_prefix + random_string()
+        self.assertTrue(client.use_container(container_name, create=True), 'use_container(create=true) should return true on success')
+        self.assertIsNotNone(client.container_info(container_name), 'use_container(create=true) should create the container if it does not exist')
+        client.object_upload(stream=io.BytesIO(os.urandom(100)), object_name=random_string())
+
+        # container_delete(force=True)
+        self.assertTrue(client.container_delete(container_name, force=True), 'container_delete(force=True) should return true on success')
+        self.assertIsNone(client.container_info(container_name), 'container_delete(force=True) should be able to delete a non-empty container')
+
+        # List created containers
+        print('Removing all test containers that were created')
+        containers = client.container_list(prefix=container_prefix)
+        for c in containers:
+            print(f' - Deleting {c.name}')
+            client.container_delete(c.name, force=True)
+        
 
 
 if __name__ == "__main__":
