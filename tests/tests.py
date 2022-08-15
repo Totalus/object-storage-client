@@ -1,6 +1,6 @@
 import hashlib, sys, unittest, os, time, io, random, string
 
-from src.ObjectStorageClient import ContainerInfo, ObjectInfo, ObjectStorageClient, SubdirInfo
+from src.ObjectStorageClient import ContainerInfo, NoActiveContainer, ObjectInfo, ObjectStorageClient, SubdirInfo
 from src.SwiftClient import SwiftClient
 
 def random_string(size: int = 10):
@@ -139,6 +139,18 @@ class TestCases(unittest.TestCase):
         # container_delete(force=True)
         self.assertTrue(client.container_delete(container_name, force=True), 'container_delete(force=True) should return true on success')
         self.assertIsNone(client.container_info(container_name), 'container_delete(force=True) should be able to delete a non-empty container')
+
+        # object_*() should raise exception if container is not set
+        print('Rasing exceptions')
+        self.assertFalse(client.use_container(None), 'use_container() should return false on failure')
+        self.assertRaises(NoActiveContainer, client.object_delete, 'object_name')
+        self.assertRaises(NoActiveContainer, client.object_info, 'object_name')
+        self.assertRaises(NoActiveContainer, client.object_list)
+        self.assertRaises(NoActiveContainer, client.object_upload, object_name='obj', stream=None)
+        self.assertRaises(NoActiveContainer, client.object_download, object_name='obj', stream=None)
+        self.assertRaises(NoActiveContainer, client.object_replace_metadata, object_name='obj', meta= {})
+        self.assertRaises(NoActiveContainer, client.object_set_metadata, object_name='obj', key='key', value='value')
+        self.assertRaises(NoActiveContainer, client.object_delete_metadata, object_name='obj', key='key')
 
         # List created containers
         print('Removing all test containers that were created')

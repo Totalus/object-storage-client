@@ -1,7 +1,12 @@
 
 from abc import abstractclassmethod, abstractmethod
 from dataclasses import dataclass
-from typing import Container
+
+class ObjectStorageClientError(Exception):
+    """Custom exceptions"""
+    pass
+class NoActiveContainer(ObjectStorageClientError):
+    pass
 
 
 @dataclass
@@ -40,6 +45,9 @@ class ObjectStorageClient:
         """
         self.container_name = container_name
 
+        if container_name is None:
+            return False
+
         # Does the container exist ?
         info = self.container_info(self.container_name)
         if info is not None:
@@ -50,13 +58,21 @@ class ObjectStorageClient:
             else:
                 return False
 
-    def object_path(self, object_name: str, container_name = None) -> str:
-        """Build the object path that can be appened to the object storage url"""
+    def object_path(self, object_name: str, container_name: str = None) -> str:
+        """
+        Build the object path that can be appened to the object storage url
+
+        @raise NoActiveContainer if the active container is not specified
+        """
+        if container_name is None:
+            container_name = self.container_name
+
+        if container_name is None:
+            raise NoActiveContainer
+
         path = object_name if object_name.startswith('/') else '/' + object_name
-        if not container_name: container_name = self.container_name;
-        if container_name != None:
-            path = '/' + container_name + path
-            path = path.replace('//', '/')
+        path = '/' + container_name + path
+        path = path.replace('//', '/')
         return path
 
     def upload_file(self, localFilePath: str, object_name: str, meta: dict={}) -> bool:

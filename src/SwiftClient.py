@@ -35,7 +35,7 @@ class SwiftClient(ObjectStorageClient):
         if self.OS_PROJECT_NAME == None: self.OS_PROJECT_NAME = self.OS_TENANT_NAME;
         if self.OS_PROJECT_ID == None: self.OS_PROJECT_ID = self.OS_TENANT_ID;
 
-        self.OS_AUTH_TOKEN  = os.getenv("OS_AUTH_TOKEN") # Check if an auth token was provided in the environment
+        self.OS_AUTH_TOKEN = os.getenv("OS_AUTH_TOKEN") # Check if an auth token was provided in the environment
 
         if not self.OS_AUTH_TOKEN and not self.OS_AUTH_URL:
             print("The environment does not seem to contain OpenStack credentials or token")
@@ -127,10 +127,9 @@ class SwiftClient(ObjectStorageClient):
         return r.status_code in [204, 404]
 
 
-    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:
+    def object_info(self, object_name: str) -> ObjectInfo:
         """Return an objet's info (including metadata)"""
-        if not container_name: container_name = self.container_name;
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
         r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         meta = {}
         for h in r.headers:
@@ -153,7 +152,7 @@ class SwiftClient(ObjectStorageClient):
         Function to set all the object's metadata
         - `meta`: dict of key-value string pairs. Keys are case insensitive.
         """
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
         headers = {'X-Auth-Token': self.OS_AUTH_TOKEN}
         for m in meta:
             headers[f'X-Object-Meta-{m}'] = meta[m]
@@ -161,18 +160,8 @@ class SwiftClient(ObjectStorageClient):
         r = requests.post(url, headers=headers)
         return r.status_code == 202
 
-    def object_path(self, object_name: str, container_name = None) -> str:
-        """Build the object path"""
-        path = object_name if object_name.startswith('/') else '/' + object_name
-        if not container_name: container_name = self.container_name;
-        if container_name != None:
-            path = '/' + container_name + path
-            path = path.replace('//', '/')
-        return path
-
     def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
-        """Upload a stream, optionally specifying some metadata to apply to the object"""
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         for m in meta:
             headers[f'X-Object-Meta-{m}'] = meta[m] # Add metadata
@@ -182,7 +171,7 @@ class SwiftClient(ObjectStorageClient):
         return r.status_code == 201
 
     def object_download(self, object_name: str, stream) -> bool:
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, self.container_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
         r = requests.get(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN}, stream=True)
         if r.status_code == 200:
             for chunk in r.iter_content():
@@ -200,7 +189,11 @@ class SwiftClient(ObjectStorageClient):
     ) -> list[ObjectInfo]:
         # See https://docs.openstack.org/api-ref/object-store/?expanded=show-container-details-and-list-objects-detail#show-container-details-and-list-objects
 
-        if container_name is None: container_name = self.container_name
+        if container_name is None:
+            container_name = self.container_name
+
+        if container_name is None:
+            raise NoActiveContainer
         
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         params = {"format":"json"}
@@ -227,7 +220,8 @@ class SwiftClient(ObjectStorageClient):
             return objects
 
     def object_delete(self, object_name: str, container_name=None) -> bool:
-        if container_name is None: container_name = self.container_name
+        if container_name is None:
+            container_name = self.container_name
         # print('object_delete()', object_name)
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         r = requests.delete(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
