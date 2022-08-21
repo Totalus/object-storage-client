@@ -39,14 +39,11 @@ class SwiftClient(ObjectStorageClient):
 
         if not self.OS_AUTH_TOKEN and not self.OS_AUTH_URL:
             print("The environment does not seem to contain OpenStack credentials or token")
-            return False
-
-        return True
+            raise AuthorizationError
 
     def authenticate(self, credentials : dict = {}) -> bool:
         """Retreives a usable authentication token"""
-        if not self.read_credentials_from_env(credentials):
-            return False
+        self.read_credentials_from_env(credentials)
 
         auth_url = self.OS_AUTH_URL + ('' if self.OS_AUTH_URL.endswith('/') else '/') + "auth/tokens"
         r = requests.post(auth_url, json={
@@ -75,7 +72,7 @@ class SwiftClient(ObjectStorageClient):
             return True
         else:
             print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
-            return False
+            raise AuthorizationError
 
     def container_info(self, container_name: str) -> ContainerInfo|None:
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
