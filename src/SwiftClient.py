@@ -151,24 +151,24 @@ class SwiftClient(ObjectStorageClient):
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({object_name}) got status code: {r.status_code} {r.content}")
 
-    def object_replace_metadata(self, object_name: str, meta: dict, container_name: str = None) -> bool:
+    def object_replace_metadata(self, object_name: str, metadata: dict, container_name: str = None) -> bool:
         """
         Function to set all the object's metadata
         - `meta`: dict of key-value string pairs. Keys are case insensitive.
         """
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         headers = {'X-Auth-Token': self.OS_AUTH_TOKEN}
-        for m in meta:
-            headers[f'X-Object-Meta-{m}'] = meta[m]
+        for m in metadata:
+            headers[f'X-Object-Meta-{m}'] = metadata[m]
 
         r = requests.post(url, headers=headers)
         return r.status_code == 202
 
-    def object_upload(self, stream, object_name: str, meta: dict={}, container_name: str = None) -> bool:
+    def object_upload(self, stream, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
-        for m in meta:
-            headers[f'X-Object-Meta-{m}'] = meta[m] # Add metadata
+        for m in metadata:
+            headers[f'X-Object-Meta-{m}'] = metadata[m] # Add metadata
         r = requests.put(url, headers=headers, data=stream)
         if r.status_code != 201:
             print('Upload status code:', r.status_code)
@@ -223,7 +223,7 @@ class SwiftClient(ObjectStorageClient):
 
             return objects
 
-    def object_delete(self, object_name: str, container_name=None) -> bool:
+    def object_delete(self, object_name: str, container_name:str = None) -> bool:
         if container_name is None:
             container_name = self.container_name
         # print('object_delete()', object_name)

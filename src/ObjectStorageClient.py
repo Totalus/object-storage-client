@@ -82,13 +82,13 @@ class ObjectStorageClient:
         path = path.replace('//', '/')
         return path
 
-    def upload_file(self, localFilePath: str, object_name: str, meta: dict={}, container_name: str = None) -> bool:
+    def upload_file(self, localFilePath: str, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
         """Upload a file with, optionally specifying some metadata to apply to the object"""
         with open(localFilePath, 'rb') as file:
             ok = self.object_upload(
                 file=file,
                 object_name=object_name,
-                meta=meta,
+                metadata=metadata,
                 container_name=container_name
                 )
         return ok
@@ -193,7 +193,7 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def object_upload(self, stream, object_name: str, meta: dict={}, container_name: str = None) -> bool:
+    def object_upload(self, stream, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
         """
         Upload a stream, optionally specifying some metadata to apply to the object
 
