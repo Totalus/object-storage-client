@@ -49,7 +49,7 @@ class TestCases(unittest.TestCase):
         object_name = 'dir1' + '/' + random_string()
         size_bytes = 100
         data = io.BytesIO(os.urandom(size_bytes))
-        self.assertTrue(client.object_upload(data, object_name, meta={'Key1': 'Value1'}), 'object_upload() should return true on success')
+        self.assertTrue(client.object_upload(data, object_name, metadata={'Key1': 'Value1'}), 'object_upload() should return true on success')
 
         # object_info()
         print(f'Getting object info')
@@ -128,7 +128,7 @@ class TestCases(unittest.TestCase):
 
         self.assertTrue(client.container_delete(container_name), 'container_delete() should return true on success')
         self.assertIsNone(client.container_name, 'container_delete() should set the active container name to None upon successful delete')
-        self.assertTrue(len(client.object_list()) == 0, 'object_delete() should properly remove objects')
+        self.assertTrue(len(client.object_list(container_name=container_name)) == 0, 'object_delete() should properly remove objects')
 
         print('Force delete a container')
         # Create a non-empty container
@@ -143,13 +143,13 @@ class TestCases(unittest.TestCase):
 
         # object_*() should raise exception if container is not set
         print('Rasing exceptions')
-        self.assertFalse(client.use_container(None), 'use_container() should return false on failure')
+        self.assertFalse(client.use_container(container_prefix + random_string(20)), 'use_container() should return false on failure')
         self.assertRaises(ContainerNotSpecified, client.object_delete, 'object_name')
         self.assertRaises(ContainerNotSpecified, client.object_info, 'object_name')
         self.assertRaises(ContainerNotSpecified, client.object_list)
         self.assertRaises(ContainerNotSpecified, client.object_upload, object_name='obj', stream=None)
         self.assertRaises(ContainerNotSpecified, client.object_download, object_name='obj', stream=None)
-        self.assertRaises(ContainerNotSpecified, client.object_replace_metadata, object_name='obj', meta= {})
+        self.assertRaises(ContainerNotSpecified, client.object_replace_metadata, object_name='obj', metadata= {})
         self.assertRaises(ContainerNotSpecified, client.object_set_metadata, object_name='obj', key='key', value='value')
         self.assertRaises(ContainerNotSpecified, client.object_delete_metadata, object_name='obj', key='key')
 
