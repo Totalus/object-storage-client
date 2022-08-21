@@ -5,7 +5,12 @@ from dataclasses import dataclass
 class ObjectStorageClientError(Exception):
     """Custom exceptions"""
     pass
-class NoActiveContainer(ObjectStorageClientError):
+
+class AuthorizationError(ObjectStorageClientError):
+    """User not allowed to perform the action"""
+    pass
+
+class ContainerNotSpecified(ObjectStorageClientError):
     pass
 
 
@@ -70,7 +75,7 @@ class ObjectStorageClient:
             container_name = self.container_name
 
         if container_name is None:
-            raise NoActiveContainer
+            raise ContainerNotSpecified
 
         path = object_name if object_name.startswith('/') else '/' + object_name
         path = '/' + container_name + path

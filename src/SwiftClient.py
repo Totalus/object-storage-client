@@ -197,7 +197,7 @@ class SwiftClient(ObjectStorageClient):
             container_name = self.container_name
 
         if container_name is None:
-            raise NoActiveContainer
+            raise ContainerNotSpecified
         
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         params = {"format":"json"}
