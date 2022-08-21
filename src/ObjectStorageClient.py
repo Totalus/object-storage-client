@@ -36,27 +36,29 @@ class ObjectStorageClient:
     #   Common implementation
     #
 
-    def use_container(self, container_name: str, create=False) -> bool:
+    def use_container(self, container_name: str | None, create=False) -> bool:
         """
         Set the target container name
 
+        @param `container_name` name of the container to set (or None to clear the active container)
         @param `create` create the container if it does not already exist
         @return True on success, False if the container does not exist and cannot be created
         """
-        self.container_name = container_name
-
         if container_name is None:
-            return False
+            self.container_name = container_name
+            return True
 
         # Does the container exist ?
-        info = self.container_info(self.container_name)
+        info = self.container_info(container_name)
         if info is not None:
-            return True # Container exists
-        else: # Container does not exist
-            if create:
-                return self.container_create(self.container_name)
-            else:
-                return False
+            # Container already exists
+            self.container_name = container_name
+            return True
+        elif create and self.container_create(container_name):
+            self.container_name = container_name
+            return True
+
+        return False
 
     def object_path(self, object_name: str, container_name: str = None) -> str:
         """
