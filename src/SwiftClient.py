@@ -123,7 +123,12 @@ class SwiftClient(ObjectStorageClient):
         r = requests.delete(url, headers=headers)
         if r.status_code not in [204, 404, 409]:
             print('container_delete() status code:', r.status_code)
-        return r.status_code in [204, 404]
+        if r.status_code in [204, 404]:
+            # Success
+            self.container_name = None
+            return True
+        else:
+            return False
 
 
     def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:

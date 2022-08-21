@@ -127,6 +127,7 @@ class TestCases(unittest.TestCase):
             client.object_delete(o.name)
 
         self.assertTrue(client.container_delete(container_name), 'container_delete() should return true on success')
+        self.assertIsNone(client.container_name, 'container_delete() should set the active container name to None upon successful delete')
         self.assertTrue(len(client.object_list()) == 0, 'object_delete() should properly remove objects')
 
         print('Force delete a container')
