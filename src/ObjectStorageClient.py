@@ -60,7 +60,7 @@ class ObjectStorageClient:
 
         return False
 
-    def object_path(self, object_name: str, container_name: str = None) -> str:
+    def object_path(self, object_name: str, container_name: str|None = None) -> str:
         """
         Build the object path that can be appened to the object storage url
 
@@ -77,34 +77,54 @@ class ObjectStorageClient:
         path = path.replace('//', '/')
         return path
 
-    def upload_file(self, localFilePath: str, object_name: str, meta: dict={}) -> bool:
+    def upload_file(self, localFilePath: str, object_name: str, meta: dict={}, container_name: str = None) -> bool:
         """Upload a file with, optionally specifying some metadata to apply to the object"""
         with open(localFilePath, 'rb') as file:
-            ok = self.object_upload(file, object_name, meta)    
+            ok = self.object_upload(
+                file=file,
+                object_name=object_name,
+                meta=meta,
+                container_name=container_name
+                )
         return ok
 
-    def download_file(self, object_name: str, outputFilePath: str) -> bool:
+    def download_file(self, object_name: str, outputFilePath: str, container_name: str = None) -> bool:
         """Download a file"""
         with open(outputFilePath, 'wb') as file:
-            ok = self.object_download(object_name, file)
+            ok = self.object_download(
+                object_name=object_name, 
+                stream=file,
+                container_name=container_name
+                )
         return ok
 
-    def object_set_metadata(self, object_name: str, key: str, value: str) -> bool:
+    def object_set_metadata(self, object_name: str, key: str, value: str, container_name: str = None) -> bool:
         """Sets a single metadata key-value pair on the specified object"""
-        info = self.object_info(object_name)
+        info = self.object_info(
+            object_name=object_name,
+            container_name=container_name,
+            )
         if info is None:
             return False
         info.metadata[key] = value
-        return self.object_replace_metadata(object_name, info.metadata)
+        return self.object_replace_metadata(
+            object_name=object_name,
+            metadata=info.metadata,
+            container_name=container_name,
+            )
 
-    def object_delete_metadata(self, object_name: str, key: str) -> dict:
+    def object_delete_metadata(self, object_name: str, key: str, container_name: str = None) -> dict:
         """Delete a single metadata key-value for the specified object"""
         info = self.object_info(object_name)
         if info is None:
             return False
         if key in info.metadata:
             del info.metadata[key]
-            return self.object_replace_metadata(object_name, info.metadata)
+            return self.object_replace_metadata(
+                object_name=object_name,
+                metadata=info.metadata,
+                container_name=container_name,
+                )
         else:
             return True # Key not in the metadata
 
@@ -152,7 +172,7 @@ class ObjectStorageClient:
 
     # Object related actions
 
-    def object_replace_metadata(self, object_name: str, metadata: dict = {}) -> bool:
+    def object_replace_metadata(self, object_name: str, metadata: dict = {}, container_name: str = None) -> bool:
         """
         Replace an object's metadata
 
@@ -160,7 +180,7 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def object_info(self, object_name: str) -> ObjectInfo|None:
+    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo|None:
         """
         Return an objet's info (including metadata)
 
@@ -168,7 +188,7 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
+    def object_upload(self, stream, object_name: str, meta: dict={}, container_name: str = None) -> bool:
         """
         Upload a stream, optionally specifying some metadata to apply to the object
 
@@ -176,7 +196,7 @@ class ObjectStorageClient:
         """
         raise NotImplementedError
 
-    def object_download(self, object_name: str, stream) -> bool:
+    def object_download(self, object_name: str, stream, container_name: str = None) -> bool:
         """ 
         Download an object and write to the output stream
         """

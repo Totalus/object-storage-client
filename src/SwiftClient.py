@@ -77,8 +77,7 @@ class SwiftClient(ObjectStorageClient):
             print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
             return False
 
-    def container_info(self, container_name: str = None) -> ContainerInfo:
-        if not container_name: container_name = self.container_name;
+    def container_info(self, container_name: str) -> ContainerInfo|None:
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         meta = {}
@@ -127,9 +126,9 @@ class SwiftClient(ObjectStorageClient):
         return r.status_code in [204, 404]
 
 
-    def object_info(self, object_name: str) -> ObjectInfo:
+    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:
         """Return an objet's info (including metadata)"""
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         meta = {}
         for h in r.headers:
@@ -147,12 +146,12 @@ class SwiftClient(ObjectStorageClient):
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({object_name}) got status code: {r.status_code} {r.content}")
 
-    def object_replace_metadata(self, object_name: str, meta: dict) -> bool:
+    def object_replace_metadata(self, object_name: str, meta: dict, container_name: str = None) -> bool:
         """
         Function to set all the object's metadata
         - `meta`: dict of key-value string pairs. Keys are case insensitive.
         """
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         headers = {'X-Auth-Token': self.OS_AUTH_TOKEN}
         for m in meta:
             headers[f'X-Object-Meta-{m}'] = meta[m]
@@ -160,8 +159,8 @@ class SwiftClient(ObjectStorageClient):
         r = requests.post(url, headers=headers)
         return r.status_code == 202
 
-    def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
+    def object_upload(self, stream, object_name: str, meta: dict={}, container_name: str = None) -> bool:
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         for m in meta:
             headers[f'X-Object-Meta-{m}'] = meta[m] # Add metadata
@@ -170,8 +169,8 @@ class SwiftClient(ObjectStorageClient):
             print('Upload status code:', r.status_code)
         return r.status_code == 201
 
-    def object_download(self, object_name: str, stream) -> bool:
-        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name)}"
+    def object_download(self, object_name: str, stream, container_name: str = None) -> bool:
+        url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         r = requests.get(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN}, stream=True)
         if r.status_code == 200:
             for chunk in r.iter_content():
