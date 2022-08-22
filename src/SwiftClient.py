@@ -12,7 +12,32 @@ class SwiftClient(ObjectStorageClient):
 
     def __init__(self, storage_url: str, credentials: dict = {}) -> None:
         self.OBJECT_STORAGE_URL = storage_url[0:-1] if storage_url.endswith('/') else storage_url # Remove trailing /
+        self.session = requests.Session()
+        self.session.hooks = {'response': [self._response_hook]} # Set a response hook to handle authentication errors
         self.authenticate(credentials)
+
+    # This hook is called before each response is returned from
+    # the request execution. We use it to handle authentication
+    # failure. If there is an auth failure, we re-authenticate
+    # and retry the request before raising an exception if we
+    # still have a failure. This allows to renew an expired
+    # token transparently without raising an error.
+    def _response_hook(self, resp: requests.Response, *args, **kwargs):
+        """Called before returning the response"""
+        auth_status_codes = [401]
+        if resp.status_code in auth_status_codes:
+            self.session.close()
+            self.authenticate() # Renew token
+            req = resp.request.copy() # Copy the original request
+            req.headers['X-Auth-Token'] = self.OS_AUTH_TOKEN # Update the auth token
+            req.hooks = None # To avoid infinite retry, we clear the hooks
+            res : requests.Response = requests.Session().send(request=req)
+            if res.status_code in auth_status_codes:
+                raise AuthorizationError
+            else:
+                return res
+        return resp
+
 
     def read_credentials_from_env(self, credentials: dict):
         """
@@ -45,6 +70,7 @@ class SwiftClient(ObjectStorageClient):
         """Retreives a usable authentication token"""
         self.read_credentials_from_env(credentials)
 
+        # See https://docs.openstack.org/api-ref/identity/v3/#authentication-and-token-management
         auth_url = self.OS_AUTH_URL + ('' if self.OS_AUTH_URL.endswith('/') else '/') + "auth/tokens"
         r = requests.post(auth_url, json={
             "auth": {
@@ -69,6 +95,7 @@ class SwiftClient(ObjectStorageClient):
 
         if r.status_code == 201:
             self.OS_AUTH_TOKEN = r.headers.get('X-Subject-Token')
+            self.session.headers['X-Auth-Token'] = self.OS_AUTH_TOKEN
             return True
         else:
             print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
@@ -76,7 +103,7 @@ class SwiftClient(ObjectStorageClient):
 
     def container_info(self, container_name: str) -> ContainerInfo|None:
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
-        r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        r = self.session.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         meta = {}
         for h in r.headers:
             if h.startswith('X-Object-Meta-'):
@@ -96,14 +123,14 @@ class SwiftClient(ObjectStorageClient):
         url = f"{self.OBJECT_STORAGE_URL}"
         params = {"format":"json"}
         if prefix: params['prefix'] = prefix
-        r = requests.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        r = self.session.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         objList = r.json()
         return [ContainerInfo(o.get('name'), o.get('bytes'), o.get('count')) for o in objList]
 
     def container_create(self, container_name: str) -> bool:
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
-        r = requests.put(url, headers=headers)
+        r = self.session.put(url, headers=headers)
         if r.status_code not in [201, 202]:
             print('container_create() status code:', r.status_code)
         return r.status_code == 201
@@ -117,7 +144,7 @@ class SwiftClient(ObjectStorageClient):
 
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
-        r = requests.delete(url, headers=headers)
+        r = self.session.delete(url, headers=headers)
         if r.status_code not in [204, 404, 409]:
             print('container_delete() status code:', r.status_code)
         if r.status_code in [204, 404]:
@@ -131,7 +158,7 @@ class SwiftClient(ObjectStorageClient):
     def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:
         """Return an objet's info (including metadata)"""
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
-        r = requests.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        r = self.session.head(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         meta = {}
         for h in r.headers:
             if h.startswith('X-Object-Meta-'):
@@ -158,7 +185,7 @@ class SwiftClient(ObjectStorageClient):
         for m in metadata:
             headers[f'X-Object-Meta-{m}'] = metadata[m]
 
-        r = requests.post(url, headers=headers)
+        r = self.session.post(url, headers=headers)
         return r.status_code == 202
 
     def object_upload(self, stream, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
@@ -166,14 +193,14 @@ class SwiftClient(ObjectStorageClient):
         headers={'X-Auth-Token': self.OS_AUTH_TOKEN}
         for m in metadata:
             headers[f'X-Object-Meta-{m}'] = metadata[m] # Add metadata
-        r = requests.put(url, headers=headers, data=stream)
+        r = self.session.put(url, headers=headers, data=stream)
         if r.status_code != 201:
             print('Upload status code:', r.status_code)
         return r.status_code == 201
 
     def object_download(self, object_name: str, stream, container_name: str = None) -> bool:
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
-        r = requests.get(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN}, stream=True)
+        r = self.session.get(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN}, stream=True)
         if r.status_code == 200:
             for chunk in r.iter_content():
                 stream.write(chunk)
@@ -200,7 +227,7 @@ class SwiftClient(ObjectStorageClient):
         params = {"format":"json"}
         if prefix: params['prefix'] = prefix
         if delimiter: params['delimiter'] = delimiter
-        r = requests.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        r = self.session.get(url, params=params, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
 
         if r.status_code != 200:
             return []
@@ -225,5 +252,5 @@ class SwiftClient(ObjectStorageClient):
             container_name = self.container_name
         # print('object_delete()', object_name)
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
-        r = requests.delete(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
+        r = self.session.delete(url, headers={'X-Auth-Token': self.OS_AUTH_TOKEN})
         return r.status_code == 204 or r.status_code == 404
