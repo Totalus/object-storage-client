@@ -1,4 +1,4 @@
-import hashlib, sys, unittest, os, time, io, random, string
+import sys, unittest, os, io, random, string, warnings
 
 from src.ObjectStorageClient import ContainerInfo, ContainerNotSpecified, ObjectInfo, ObjectStorageClient, SubdirInfo
 from src.SwiftClient import SwiftClient
@@ -12,6 +12,7 @@ class TestCases(unittest.TestCase):
     object_name = 'test-object-123456789'
 
     def test_suite_v2(self):
+        warnings.simplefilter("ignore", ResourceWarning)
         container_prefix = "obs-client-test-container-"
         container_name = f"{container_prefix}{random_string()}"
 
