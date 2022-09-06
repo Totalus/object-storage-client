@@ -86,7 +86,7 @@ class ObjectStorageClient:
         """Upload a file with, optionally specifying some metadata to apply to the object"""
         with open(localFilePath, 'rb') as file:
             ok = self.object_upload(
-                file=file,
+                stream=file,
                 object_name=object_name,
                 metadata=metadata,
                 container_name=container_name

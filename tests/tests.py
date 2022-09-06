@@ -112,7 +112,19 @@ class TestCases(unittest.TestCase):
         self.assertEqual(downloaded_data.getvalue(), data.getvalue(), 'object_download() should download the same data that was uploaded with object_upload()')
 
         # Upload a file
+        print(f'Uploading file')
+        filename = random_string() + '.txt'
+        with open(filename, 'w') as f:
+            f.write(random_string(100))
+        
+        self.assertTrue(client.upload_file(localFilePath=filename, object_name=filename))
+        self.assertIsNotNone(client.object_info(filename))
+        os.remove(filename)
+
         # Download a file
+        print(f'Downloading file')
+        self.assertTrue(client.download_file(outputFilePath=filename, object_name=filename))
+        os.remove(filename)
 
         # Delete container
         self.assertFalse(client.container_delete(container_name), 'container_delete() should not delete a container that is not empty')
