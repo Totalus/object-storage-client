@@ -11,6 +11,9 @@ Storage backend currently supported:
 
 `pip install --upgrade https://github.com/Totalus/object-storage-client/tarball/main`
 
+Specific release:
+`pip install --upgrade https://github.com/Totalus/object-storage-client/archive/refs/tags/0.0.7.tar.gz`
+
 ## Storage backends
 
 ### OpenStack Swift
@@ -65,7 +68,7 @@ with open('file.txt', 'rb') as f:
 
 # Download a file (equivalent to client.download_file())
 with open('file.txt', 'wb') as f:
-    client.object_downalod('my-object.txt', f)
+    client.object_download('my-object.txt', f)
 
 # Send file content to stdout
 client.object_download('my-object.txt', sys.stdout.buffer)
