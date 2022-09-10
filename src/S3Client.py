@@ -2,9 +2,10 @@
 #
 #   AWS S3 Client
 #   API Reference: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
+#   (error handling) https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
 #
 
-import boto3
+import boto3, botocore
 
 from .ObjectStorageClient import *
 
@@ -25,8 +26,7 @@ class S3Client(ObjectStorageClient):
         """
         try:
             res = self.client.create_bucket(Bucket=container_name, CreateBucketConfiguration={ "LocationConstraint": self.location })
-            print(res)
-            return True
+            return res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200
         except:
             return False
 
@@ -44,6 +44,7 @@ class S3Client(ObjectStorageClient):
         """
         try:
             res = self.client.delete_bucket(Bucket=container_name)
+            print("container_deletes() res=", res)
             return True
         except:
             return False
@@ -54,12 +55,18 @@ class S3Client(ObjectStorageClient):
 
         @return ContainerInfo or None if the container does not exist
         """
-        result = self.client.head_bucket(Bucket=container_name)
+        try:
+            result = self.client.head_bucket(Bucket=container_name)
+        except botocore.exceptions.ClientError as e:
+            result = e.response
 
         if result.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
             return ContainerInfo(container_name, None, None)
-        
-        return None
+        elif result.get('ResponseMetadata', {}).get('HTTPStatusCode') == 404:
+            return None
+        else:
+            print('S3Client: unknown error code:', result.get('ResponseMetadata', {}).get('HTTPStatusCode'))
+            return None
 
     # Object related actions
 
