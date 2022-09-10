@@ -65,17 +65,23 @@ class ObjectStorageClient:
 
         return False
 
+    def get_container(self, container_name: str | None = None) -> str:
+        """Util function to raise an error if the container is undefined"""
+        if container_name is None:
+            container_name = self.container_name
+
+        if container_name is None:
+            raise ContainerNotSpecified
+
+        return container_name
+
     def object_path(self, object_name: str, container_name: str|None = None) -> str:
         """
         Build the object path that can be appened to the object storage url
 
         @raise NoActiveContainer if the active container is not specified
         """
-        if container_name is None:
-            container_name = self.container_name
-
-        if container_name is None:
-            raise ContainerNotSpecified
+        container_name = self.get_container(container_name)
 
         path = object_name if object_name.startswith('/') else '/' + object_name
         path = '/' + container_name + path

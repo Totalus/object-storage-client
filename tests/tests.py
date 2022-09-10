@@ -1,6 +1,7 @@
 import sys, unittest, os, io, random, string, warnings
 
 from src.ObjectStorageClient import ContainerInfo, ContainerNotSpecified, ObjectInfo, ObjectStorageClient, SubdirInfo
+from src.S3Client import S3Client
 from src.SwiftClient import SwiftClient
 
 def random_string(size: int = 10):
@@ -8,15 +9,23 @@ def random_string(size: int = 10):
 
 class TestCases(unittest.TestCase):
     container_name = None
-    storage_url = None
     object_name = 'test-object-123456789'
+
+    storage = {
+        "type": None
+    }
 
     def test_suite_v2(self):
         warnings.simplefilter("ignore", ResourceWarning)
         container_prefix = "obs-client-test-container-"
         container_name = f"{container_prefix}{random_string()}"
 
-        client : ObjectStorageClient = SwiftClient(self.storage_url)
+        if(self.storage['backend'] == "s3"):
+            print(f'Creating S3 client')
+            client : ObjectStorageClient = S3Client(self.storage['location'])
+        else:
+            print(f'Creating Openstack Swift client')
+            client : ObjectStorageClient = SwiftClient(self.storage['url'])
 
         # container_create()
         print(f'Creating container')
@@ -134,14 +143,15 @@ class TestCases(unittest.TestCase):
         objects = client.object_list()
 
         self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true on success')
-        self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true if the file does not exist')
+        self.assertTrue(client.object_delete(objects[0].name + '123'), 'object_delete() should return true if the file does not exist')
 
         for o in objects:
             client.object_delete(o.name)
 
+        self.assertTrue(len(client.object_list(container_name=container_name)) == 0, 'object_delete() should properly remove objects')
+
         self.assertTrue(client.container_delete(container_name), 'container_delete() should return true on success')
         self.assertIsNone(client.container_name, 'container_delete() should set the active container name to None upon successful delete')
-        self.assertTrue(len(client.object_list(container_name=container_name)) == 0, 'object_delete() should properly remove objects')
 
         print('Force delete a container')
         # Create a non-empty container
@@ -176,10 +186,19 @@ class TestCases(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print('Usage: python -m tests <storage-url>')
+    if len(sys.argv) != 3 or sys.argv[1] not in ['s3','swift']:
+        print('Usage:')
+        print('   python -m tests.tests s3 <aws-location>')
+        print('   python -m tests.tests swift <swift-storage-url>')
         exit()
     else:
-        TestCases.storage_url = sys.argv.pop()
+        backend = sys.argv[1]
+
+        if backend == 's3':
+            TestCases.storage['location'] = sys.argv.pop()
+        else:
+            TestCases.storage['url'] = sys.argv.pop()
+
+        TestCases.storage['backend'] = sys.argv.pop()
 
     unittest.main()
