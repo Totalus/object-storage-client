@@ -37,16 +37,15 @@ class S3Client(ObjectStorageClient):
         return [ ContainerInfo(b['Name'], None, None) for b in buckets if prefix is None or b['Name'].startswith(prefix) ]
 
     def container_delete(self, container_name: str, force: bool = False) -> bool:
-        """
-        Delete a container. It will not delete a container that contain objects unless `force`
-        is set to True.
+        if force:
+            # First delete all objects in the container, otherwise the delete request will fail
+            objects = self.object_list(container_name=container_name)
+            for o in objects:
+                self.object_delete(o.name, container_name)
 
-        @param `force` Set to True to delete a container even if it is not empty.
-        @return True if the container was deleted or does not exist
-        """
         try:
             res = self.client.delete_bucket(Bucket=container_name)
-            print("container_deletes() res=", res)
+            self.container_name = None
             return True
         except:
             return False
@@ -106,11 +105,6 @@ class S3Client(ObjectStorageClient):
 
         return res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200
 
-
-    def object_delete_metadata(self, object_name: str, key: str) -> dict:
-        """Delete a single metadata key-value for the specified object"""
-        raise NotImplementedError
-
     def object_upload(self, stream, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
         """Upload a stream, optionally specifying some metadata to apply to the object"""
 
@@ -128,11 +122,23 @@ class S3Client(ObjectStorageClient):
             return False
 
 
-    def object_download(self, object_name: str, stream) -> bool:
-        """ 
-        Download an object and write to the output stream
-        """
-        raise NotImplementedError
+    def object_download(self, object_name: str, stream, container_name: str = None) -> bool:
+        try:
+            res = self.client.get_object(
+                Bucket=self.get_container(container_name),
+                Key=object_name,
+            )
+        except botocore.exceptions.ClientError as e:
+            res = e.response
+
+        if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
+            stream.write(res['Body'].read())
+            return True
+        elif res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 404:
+            return False
+        else:
+            print(f"S3Client: object_download() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
+            return False
 
     def object_list(self,
         fetch_metadata: bool = False,
@@ -140,11 +146,8 @@ class S3Client(ObjectStorageClient):
         delimiter: str = None,
         container_name: str = None,
     ) -> list[ObjectInfo|SubdirInfo]:
-        
-        if container_name is None:
-            container_name = self.container_name
 
-        args = {"Bucket": container_name}
+        args = {"Bucket": self.get_container(container_name)}
         if prefix: args['Prefix'] = prefix
         if delimiter: args['Delimiter'] = delimiter
 
@@ -162,8 +165,22 @@ class S3Client(ObjectStorageClient):
             return []
 
     def object_delete(self, object_name: str, container_name: str = None) -> bool:
-        """Delete the specified object"""
-        raise NotImplementedError
+        try:
+            res = self.client.delete_object(
+                Bucket=self.get_container(container_name),
+                Key=object_name,
+            )
+        except botocore.exceptions.ClientError as e:
+            print('object_delete()', e)
+            res = e.response
+
+        if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 204:
+            return True
+        else:
+            print(f"S3Client: object_delete() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
+            return False
+
+
 
 
     

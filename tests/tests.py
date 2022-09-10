@@ -143,14 +143,15 @@ class TestCases(unittest.TestCase):
         objects = client.object_list()
 
         self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true on success')
-        self.assertTrue(client.object_delete(objects[0].name), 'object_delete() should return true if the file does not exist')
+        self.assertTrue(client.object_delete(objects[0].name + '123'), 'object_delete() should return true if the file does not exist')
 
         for o in objects:
             client.object_delete(o.name)
 
+        self.assertTrue(len(client.object_list(container_name=container_name)) == 0, 'object_delete() should properly remove objects')
+
         self.assertTrue(client.container_delete(container_name), 'container_delete() should return true on success')
         self.assertIsNone(client.container_name, 'container_delete() should set the active container name to None upon successful delete')
-        self.assertTrue(len(client.object_list(container_name=container_name)) == 0, 'object_delete() should properly remove objects')
 
         print('Force delete a container')
         # Create a non-empty container
