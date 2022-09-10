@@ -5,7 +5,7 @@ The purpose of thie project is to provide a python client that provides a simple
 
 Storage backend currently supported:
 - OpenStack Swift
-- AWS S3 (not implemented yet)
+- AWS S3
 
 ## Install / Upgrade
 
@@ -15,19 +15,32 @@ Specific release: `pip install --upgrade <release-tar-gz>` (available [releases]
 
 ## Storage backends
 
+### AWS S3
+
+```py
+from obs_client import S3Client
+
+client = S3Client(location="us-west-2")
+```
+
+The `location` parameter is mainly used by `container_create()` to decide where to create the container, but you can work with existing containers in any location.
+
+The S3Client is based on `boto3` which picks up the credentials automatically from the environment or a credential file. Refer to its [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html).
+
+
 ### OpenStack Swift
 
 ```py
 from obs_client import SwiftClient
 
-client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>", container_name="my-container")
+client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>")
 ```
 
-The client will automatically pick up the credentials if they are in the environment (if you run `source openrc.sh`). You can also provide them manually:
+The client will automatically pick up the credentials if they are in the environment. You can also provide them manually:
 
 ```py
 # Provide the required credentials
-client = SwiftClient(storage_url="", container_name="my-container",
+client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>",
     credentials={
         # Required credentials (example)
         "OS_AUTH_URL": "https://<auth-domain>/v3/"
@@ -78,8 +91,11 @@ Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full l
 
 ## Adding storage backend
 
-To add new storage backends, subclass the `ObjectStorageClient` class and implement the abstract methods. The constructor of the subclass can be used to set the credentials.
+To add new storage backends, subclass the `ObjectStorageClient` class and implement the abstract methods. The constructor of the subclass can be used to set the credentials and other backend-specific parameters.
 
 ## Tests
 
-`python -m test.tests <storage-url>`
+The test suite helps to keep a consistent behavior for each implementation.
+
+- Test S3Client: `python -m test.tests s3 <location>`
+- Test SwifClient: `python -m test.tests swift <swift-storage-url>`
