@@ -4,6 +4,8 @@
 #   API Reference: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
 #   (error handling) https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
 #
+#
+#   - For metadata, we use tags as they are more versatile and can be changed without re-uploading the entire object.
 
 import boto3, botocore
 
@@ -32,7 +34,7 @@ class S3Client(ObjectStorageClient):
 
     def container_list(self, prefix: str = None) -> list[ContainerInfo]:
         buckets = self.client.list_buckets().get('Buckets', [])
-        return [ ContainerInfo(b['Name'], None, None) for b in buckets ]
+        return [ ContainerInfo(b['Name'], None, None) for b in buckets if prefix is None or b['Name'].startswith(prefix) ]
 
     def container_delete(self, container_name: str, force: bool = False) -> bool:
         """
@@ -70,8 +72,12 @@ class S3Client(ObjectStorageClient):
 
     # Object related actions
 
-    def object_info(self, object_name: str) -> ObjectInfo:
-        res = self.client.head_object(Bucket=self.container_name, Key=object_name)
+    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo|None:
+        try:
+            res = self.client.head_object(Bucket=self.get_container(container_name), Key=object_name)
+        except botocore.exceptions.ClientError as e:
+            res = e.response
+        
         if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
             return ObjectInfo(
                 name=object_name,
@@ -80,32 +86,47 @@ class S3Client(ObjectStorageClient):
                 hash=res.get('ETag').replace('"',''),
                 metadata=res.get('Metadata')
             )
+        elif res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 404:
+            return None
         else:
+            print(f"S3Client: object_info() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
             return None
 
-    def object_replace_metadata(self, object_name: str, meta: dict={}) -> bool:
-        res = self.client.copy_object(
-            Bucket=self.container_name,
-            Key=object_name,
-            CopySource={'Bucket':self.container_name, 'Key': object_name},
-            Metadata=meta,
-            MetadataDirective='REPLACE'
-        )
+    def object_replace_metadata(self, object_name: str, metadata: dict = {}, container_name: str = None) -> bool:
+        try:
+            res = self.client.copy_object(
+                Bucket=self.get_container(container_name),
+                Key=object_name,
+                CopySource={'Bucket':self.container_name, 'Key': object_name},
+                Metadata=metadata,
+                MetadataDirective='REPLACE'
+            )
+        except botocore.exceptions.ClientError as e:
+            res = e.response
 
         return res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200
 
-
-    def object_set_metadata(self, object_name: str, key: str, value: str) -> bool:
-        """Sets a single metadata key-value pair on the specified object"""
-        raise NotImplementedError
 
     def object_delete_metadata(self, object_name: str, key: str) -> dict:
         """Delete a single metadata key-value for the specified object"""
         raise NotImplementedError
 
-    def object_upload(self, stream, object_name: str, meta: dict={}) -> bool:
+    def object_upload(self, stream, object_name: str, metadata: dict={}, container_name: str = None) -> bool:
         """Upload a stream, optionally specifying some metadata to apply to the object"""
-        raise NotImplementedError
+
+        res = self.client.put_object(
+            Body=stream,
+            Bucket=self.get_container(container_name),
+            Key=object_name,
+            Metadata=metadata
+        )
+
+        if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
+            return True
+        else:
+            print(f"S3Client: object_upload() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
+            return False
+
 
     def object_download(self, object_name: str, stream) -> bool:
         """ 
