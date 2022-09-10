@@ -1,7 +1,7 @@
 
 # Universal Object Storage Client
 
-The purpose of thie project is to provide a python client that provides a simple straightforward API to manage objects on various object storage backends (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backends or change storage backend without needing to change the code, which prevents vendor lock-in.
+The purpose of thie project is to provide a python client that provides a simple straightforward API to manage objects on various object storage backends (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backends or change storpage backend without needing to change the code, which prevents vendor lock-in.
 
 Storage backend currently supported:
 - OpenStack Swift
@@ -9,10 +9,9 @@ Storage backend currently supported:
 
 ## Install / Upgrade
 
-`pip install --upgrade https://github.com/Totalus/object-storage-client/tarball/main`
+Latest stable version (v1): `pip install --upgrade https://github.com/Totalus/object-storage-client/tarball/v1`
 
-Specific release:
-`pip install --upgrade https://github.com/Totalus/object-storage-client/archive/refs/tags/0.0.7.tar.gz`
+Specific release: `pip install --upgrade <release-tar-gz>` (available [releases](https://github.com/Totalus/object-storage-client/archive/refs/tags/1.0.0.tar.gz))
 
 ## Storage backends
 
