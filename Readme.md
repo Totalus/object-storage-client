@@ -1,12 +1,4 @@
 
-- [x] Rewrite git history to remove test.py
-- [x] Déployer en tant que v1.0.0
-- [] Add tests for upload_file() and download_file()
-- [] python Compléter l'implémentation du S3Client
-
-
-- https://storage.bhs.cloud.ovh.net/v1/AUTH_fea8da5c44394de4b0693cd2cd955d92
-
 # Universal Object Storage Client
 
 The purpose of thie project is to provide a python client that provides a simple straightforward API to manage objects on various object storage backends (AWS S3, OpenStack Swift, etc.). Providing a common API allows other projects to easily support multiple storage backends or change storpage backend without needing to change the code, which prevents vendor lock-in.
