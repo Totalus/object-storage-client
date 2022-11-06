@@ -24,7 +24,7 @@ class SwiftClient(ObjectStorageClient):
     # token transparently without raising an error.
     def _response_hook(self, resp: requests.Response, *args, **kwargs):
         """Called before returning the response"""
-        auth_status_codes = [401]
+        auth_status_codes = [401, 403]
         if resp.status_code in auth_status_codes:
             self.session.close()
             self.authenticate() # Renew token
