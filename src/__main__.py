@@ -12,19 +12,19 @@ parser = argparse.ArgumentParser(
 )
 
 
-subparsers = parser.add_subparsers(dest="command", required=True)
+subparsers = parser.add_subparsers(dest="command", required=True, metavar='<command>', title="Commands", help="Operation to execute")
 
-sp = subparsers.add_parser('test-config')
-sp = subparsers.add_parser('container-list')
+sp = subparsers.add_parser('test-config', help="Test configuration and connectivity to the storage backend")
+sp = subparsers.add_parser('container-list', help="List containers (see also the `ls` command)")
 
-sp = subparsers.add_parser('container-create')
+sp = subparsers.add_parser('container-create', help="Create a container")
 sp.add_argument('container', metavar='<container>' , help="Container name")
 
 sp = subparsers.add_parser('container-delete', help="Delete a container")
 sp.add_argument('container', metavar='<container>' , help="Container name")
 sp.add_argument('--force', action="store_true", help="Delete container and all of its objects")
 
-sp = subparsers.add_parser('container-info')
+sp = subparsers.add_parser('container-info', help="Print container details")
 sp.add_argument('container', metavar='<container>' , help="Container name")
 
 sp = subparsers.add_parser('upload', help="Upload a file or stream")
@@ -33,25 +33,25 @@ sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
 
-sp = subparsers.add_parser('download')
+sp = subparsers.add_parser('download', help="Download a file")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('file', metavar='<file path>', help="File to upload")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
-sp = subparsers.add_parser('object-info')
+sp = subparsers.add_parser('object-info', help="Get object info")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
-sp = subparsers.add_parser('object-delete')
+sp = subparsers.add_parser('object-delete', help="Delete an object")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
 sp = subparsers.add_parser('ls', help="List containers and objects as if it was the file system.")
 sp.add_argument('path', nargs='?')
 
-sp = subparsers.add_parser('object-set-metadata')
-sp = subparsers.add_parser('object-delete-metadata')
-sp = subparsers.add_parser('object-replace-metadata')
+# sp = subparsers.add_parser('object-set-metadata')
+# sp = subparsers.add_parser('object-delete-metadata')
+# sp = subparsers.add_parser('object-replace-metadata')
 
 args = parser.parse_args()
 
