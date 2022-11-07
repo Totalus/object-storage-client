@@ -89,6 +89,47 @@ client.object_download('my-object.txt', sys.stdout.buffer)
 Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full list of available methods and their description.
 
 
+## CLI usage
+
+The library can also be used as a CLI tool to interact with your storage backend.
+
+Quick usage example:
+```bash
+# Print command list
+$ python -m obs_client --help
+
+# Print help for specific command
+$ python -m obs_client <command> --help
+
+# Test configuration and connectivity / print help on how to configure
+$ python -m obs_client test-config
+
+# Configure storage backend
+export OS_STORAGE=s3
+export OS_S3_LOCATION=us-west-2
+
+# List containers
+$ python -m obs_client container-list
+
+# Once configured we can test again to see if it is connected
+$ python -m obs_client test-config
+
+# Create container
+$ python -m obs_client container-create my-container
+
+# Upload file
+$ python -m obs_client upload my-file.txt my-container/my-file.txt
+
+# Print object info
+$ python -m obs_client object-info my-container/my-file.txt
+
+# Browse object storage as a file system
+$ python -m obs_client ls
+$ python -m obs_client ls my-container
+$ python -m obs_client ls my-container/my-*
+
+```
+
 ## Adding storage backend
 
 To add new storage backends, subclass the `ObjectStorageClient` class and implement the abstract methods. The constructor of the subclass can be used to set the credentials and other backend-specific parameters.
