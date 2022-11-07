@@ -210,16 +210,17 @@ if __name__ == "__main__":
 
         info = client.object_info(object_path, container)
 
-        print(f'Name: {info.name}')
-        print(f'Size: {info.bytes} bytes')
+        print(f'   Container: {container}')
+        print(f'        Name: {info.name}')
+        print(f'        Size: {info.bytes} bytes')
         print(f'Content-Type: {info.content_type}')
-        print(f'Hash: {info.hash}')
+        print(f'        Hash: {info.hash}')
         if info.metadata is None or len(info.metadata.keys()) == 0:
-            print(f'Metadata: none')
+            print(f'    Metadata: (none)')
         else:
-            print(f'Metadata:')
+            print(f'    Metadata:')
             for k in info.metadata:
-                print(f' {k}: {info.metadata[k]}')
+                print(f'       - {k} {info.metadata[k]}')
 
     elif args.command == "object-delete":
         object_path = args.object
