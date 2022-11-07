@@ -28,9 +28,7 @@ sp = subparsers.add_parser('container-info')
 sp.add_argument('container', help="Container name")
 
 sp = subparsers.add_parser('upload', help="Upload a file or stream")
-sp.add_argument('file', help="File path")
-sp.add_argument('object', help="Object name")
-sp.add_argument('--container', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
+sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
 
 sp = subparsers.add_parser('download')
 sp.add_argument('object', help="Object name")
@@ -170,9 +168,17 @@ if __name__ == "__main__":
             container = object_path.split('/')[0]
             object_path = '/'.join(object_path.split('/')[1:])
 
+        meta = {}
+        for m in args.meta:
+            if len(m.split('=')) == 2:
+                meta[m.split('=')[0]] = m.split('=')[1]
+            else:
+                print(f'Metadata synthax error: `{m}`')
+                exit()
+
         print(f'Uploading `{object_path}` to container `{container}`')
         with open(args.file, 'rb') as f:
-            if client.object_upload(f, object_path, container_name=container):
+            if client.object_upload(f, object_path, container_name=container, metadata=meta):
                 print(f'Upload complete: {container}/{object_path}')
             else:
                 print('Upload failed')
