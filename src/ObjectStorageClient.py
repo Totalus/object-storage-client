@@ -150,7 +150,7 @@ class ObjectStorageClient:
         Create a new container
 
         @param `container_name` The name of the new container
-        @return frue on success, false on failure (ex: already exists)
+        @return true on success, false on failure (ex: already exists)
         """
         raise NotImplementedError
 
