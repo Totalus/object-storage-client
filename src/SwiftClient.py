@@ -112,8 +112,8 @@ class SwiftClient(ObjectStorageClient):
         if r.status_code == 204:
             return ContainerInfo(
                 name=container_name,
-                count=r.headers.get('X-Container-Object-Count'),
-                bytes=r.headers.get('Content-Length')
+                count=int(r.headers.get('X-Container-Object-Count')),
+                bytes=int(r.headers.get('Content-Length')) if r.headers.get('Content-Length') is not None else None
             )
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({container_name}) got status code: {r.status_code} {r.content}")
