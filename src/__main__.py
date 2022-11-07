@@ -1,5 +1,5 @@
 
-import argparse, os
+import argparse, os, sys
 
 from .SwiftClient import *
 from .S3Client import *
@@ -32,6 +32,13 @@ sp.add_argument('file', metavar='<file path>', help="File to upload")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
+
+
+sp = subparsers.add_parser('upload-stream', help="Upload file from stdin")
+sp.add_argument('object', metavar='<object name>', help="Object name")
+sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
+sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
+
 
 sp = subparsers.add_parser('download', help="Download a file")
 sp.add_argument('object', metavar='<object name>', help="Object name")
@@ -185,6 +192,30 @@ if __name__ == "__main__":
                 print(f'Upload complete: {container}/{object_path}')
             else:
                 print('Upload failed')
+
+    elif args.command == "upload-stream":
+        object_path = args.object
+        if args.container is not None:
+            container = args.container
+        else:
+            # Get container from the object path
+            container = object_path.split('/')[0]
+            object_path = '/'.join(object_path.split('/')[1:])
+
+        meta = {}
+        for m in args.meta:
+            if len(m.split('=')) == 2:
+                meta[m.split('=')[0]] = m.split('=')[1]
+            else:
+                print(f'Metadata synthax error: `{m}`')
+                exit()
+
+        print(f'Uploading `{object_path}` to container `{container}`')
+        if client.object_upload(sys.stdin.buffer, object_path, container_name=container, metadata=meta):
+            print(f'Upload complete: {container}/{object_path}')
+        else:
+            print('Upload failed')
+
         
     elif args.command == "download":
         object_path = args.object
