@@ -33,16 +33,18 @@ sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
 
-
 sp = subparsers.add_parser('upload-stream', help="Upload file from stdin")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 sp.add_argument('--meta', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
 
-
 sp = subparsers.add_parser('download', help="Download a file")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('file', metavar='<file path>', help="File to upload")
+sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
+
+sp = subparsers.add_parser('download-stream', help="Download and print an object's content to stdout")
+sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
 sp = subparsers.add_parser('object-info', help="Get object info")
@@ -232,6 +234,19 @@ if __name__ == "__main__":
                 print('Download complete:', args.file)
             else:
                 print('Download failed')
+
+    elif args.command == "download-stream":
+        object_path = args.object
+        if args.container is not None:
+            container = args.container
+        else:
+            # Get container from the object path
+            container = object_path.split('/')[0]
+            object_path = '/'.join(object_path.split('/')[1:])
+
+        # print(f'Downloading {container}/{object_path} to stdout', file=sys.stderr)
+        if not client.object_download(object_path, sys.stdout.buffer, container_name=container):
+            print('Download failed', file=sys.stderr)
 
     elif args.command == "object-info":
         object_path = args.object
