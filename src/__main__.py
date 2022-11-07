@@ -258,7 +258,7 @@ if __name__ == "__main__":
 
             if object_path.endswith('*'): # Wildcard search
                 object_path = object_path[0:-1]
-            elif not object_path.endswith('/'):
+            elif not object_path.endswith('/') and len(object_path) > 0:
                 object_path += '/' # Assume folder name
 
             res = client.object_list(container_name=container, delimiter='/', prefix=object_path)
