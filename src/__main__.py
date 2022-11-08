@@ -27,24 +27,15 @@ sp.add_argument('--force', action="store_true", help="Delete container and all o
 sp = subparsers.add_parser('container-info', help="Print container details")
 sp.add_argument('container', metavar='<container>' , help="Container name")
 
-sp = subparsers.add_parser('upload', help="Upload a file or stream")
-sp.add_argument('file', metavar='<file path>', help="File to upload")
-sp.add_argument('object', metavar='<object name>', help="Object name")
-sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
-sp.add_argument('--meta', '-m', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
-
-sp = subparsers.add_parser('upload-stream', help="Upload file from stdin")
-sp.add_argument('object', metavar='<object name>', help="Object name")
+sp = subparsers.add_parser('upload', help="Upload a file (or from stdin if --file unspecified)")
+sp.add_argument('--file', '-f', metavar='<file path>', help="Local file to upload")
+sp.add_argument('object', metavar='<object path>', help="Target object path. If --container is not specified, the first part of the <object path> is assumed to be the container name (i.e. `<object path> = <container name>/<object name>`)")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 sp.add_argument('--meta', '-m', metavar='<key>=<value>', help="Metadata key-value pairs", action="append", default=[])
 
 sp = subparsers.add_parser('download', help="Download a file")
-sp.add_argument('object', metavar='<object name>', help="Object name")
-sp.add_argument('file', metavar='<file path>', help="File to upload")
-sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
-
-sp = subparsers.add_parser('download-stream', help="Download and print an object's content to stdout")
-sp.add_argument('object', metavar='<object name>', help="Object name")
+sp.add_argument('object', metavar='<object path>', help="Object to download (`<container name>/<object name>`, unless --container is specified)")
+sp.add_argument('--file', metavar='<file path>', help="Target file")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
 sp = subparsers.add_parser('object-info', help="Get object info")
@@ -188,36 +179,19 @@ if __name__ == "__main__":
                 print(f'Metadata synthax error: `{m}`')
                 exit()
 
-        print(f'Uploading `{object_path}` to container `{container}`')
-        with open(args.file, 'rb') as f:
-            if client.object_upload(f, object_path, container_name=container, metadata=meta):
+        if args.file is not None:
+            print(f'Uploading: {container}/{object_path}')
+            with open(args.file, 'rb') as f:
+                if client.object_upload(f, object_path, container_name=container, metadata=meta):
+                    print(f'Upload complete: {container}/{object_path}')
+                else:
+                    print('Upload failed')
+        else:
+            print(f'Uploading {container}/{object_path} from stdin')
+            if client.object_upload(sys.stdin.buffer, object_path, container_name=container, metadata=meta):
                 print(f'Upload complete: {container}/{object_path}')
             else:
                 print('Upload failed')
-
-    elif args.command == "upload-stream":
-        object_path = args.object
-        if args.container is not None:
-            container = args.container
-        else:
-            # Get container from the object path
-            container = object_path.split('/')[0]
-            object_path = '/'.join(object_path.split('/')[1:])
-
-        meta = {}
-        for m in args.meta:
-            if len(m.split('=')) == 2:
-                meta[m.split('=')[0]] = m.split('=')[1]
-            else:
-                print(f'Metadata synthax error: `{m}`')
-                exit()
-
-        print(f'Uploading `{object_path}` to container `{container}`')
-        if client.object_upload(sys.stdin.buffer, object_path, container_name=container, metadata=meta):
-            print(f'Upload complete: {container}/{object_path}')
-        else:
-            print('Upload failed')
-
         
     elif args.command == "download":
         object_path = args.object
@@ -228,25 +202,16 @@ if __name__ == "__main__":
             container = object_path.split('/')[0]
             object_path = '/'.join(object_path.split('/')[1:])
 
-        print(f'Downloading {container}/{object_path} to {args.file}')
-        with open(args.file, 'wb') as f:
-            if client.object_download(object_path, f, container_name=container):
-                print('Download complete:', args.file)
-            else:
-                print('Download failed')
-
-    elif args.command == "download-stream":
-        object_path = args.object
-        if args.container is not None:
-            container = args.container
+        if args.file:
+            print(f'Downloading {container}/{object_path} to {args.file}')
+            with open(args.file, 'wb') as f:
+                if client.object_download(object_path, f, container_name=container):
+                    print('Download complete:', args.file)
+                else:
+                    print('Download failed')
         else:
-            # Get container from the object path
-            container = object_path.split('/')[0]
-            object_path = '/'.join(object_path.split('/')[1:])
-
-        # print(f'Downloading {container}/{object_path} to stdout', file=sys.stderr)
-        if not client.object_download(object_path, sys.stdout.buffer, container_name=container):
-            print('Download failed', file=sys.stderr)
+            if not client.object_download(object_path, sys.stdout.buffer, container_name=container):
+                print('Download failed', file=sys.stderr)
 
     elif args.command == "object-info":
         object_path = args.object
