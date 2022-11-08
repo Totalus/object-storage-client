@@ -241,7 +241,7 @@ class SwiftClient(ObjectStorageClient):
             if fetch_metadata:
                 for obj in objects:
                     if isinstance(obj, ObjectInfo):
-                        obj.metadata = self.object_info(obj).metadata
+                        obj.metadata = self.object_info(obj.name, container_name=container_name).metadata
 
             return objects
 
