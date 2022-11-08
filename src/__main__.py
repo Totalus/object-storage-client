@@ -269,7 +269,7 @@ if __name__ == "__main__":
         else:
             print(f'    Metadata:')
             for k in info.metadata:
-                print(f'       - {k} {info.metadata[k]}')
+                print(f'       - {k} = {info.metadata[k]}')
 
     elif args.command == "object-delete":
         object_path = args.object
@@ -294,7 +294,7 @@ if __name__ == "__main__":
         if args.path is None:
             res = client.container_list()
 
-            print(len(res), 'containers')
+            print(f'--- {len(res)} containers ---')
             for i in res:
                 size_str = (str(round(i.bytes/1024/1024)) + ' Mb').rjust(10)
                 print(f"{i.name.ljust(50)} {size_str} ({i.count} objects)")
@@ -304,18 +304,17 @@ if __name__ == "__main__":
 
             if object_path.endswith('*'): # Wildcard search
                 object_path = object_path[0:-1]
-            elif not object_path.endswith('/') and len(object_path) > 0:
+            elif not object_path.endswith('/') and len(object_path) > 0 and client.object_info(container_name=container, object_name=object_path) == None:
                 object_path += '/' # Assume folder name
 
             res = client.object_list(container_name=container, delimiter='/', prefix=object_path)
             prefix_to_remove = '/'.join(object_path.split('/')[0:-1])
             if len(prefix_to_remove) > 0: prefix_to_remove += '/'
 
-            print('count', len(res))
             for i in res:
                 if type(i) == SubdirInfo:
                     subdir = i.subdir[len(prefix_to_remove):]
-                    print(f'- {subdir}')
+                    print(f'{subdir}')
                 else: # ObjectInfo
                     name = i.name[len(prefix_to_remove):]
-                    print(f'- {name.ljust(50)}  {str(i.bytes).rjust(10)} bytes')
+                    print(f'{name.ljust(50)}  {str(i.bytes).rjust(10)} bytes')
