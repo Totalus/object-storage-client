@@ -117,8 +117,11 @@ $ python -m obs_client test-config
 # Create container
 $ python -m obs_client container-create my-container
 
-# Upload file
-$ python -m obs_client upload my-file.txt my-container/my-file.txt
+# Upload file (with metadata)
+$ python -m obs_client upload --file my-file.txt my-container/my-file.txt --meta key1=value1 --meta key2=value2
+
+# Download file
+$ python -m obs_client download --file my-file.txt my-container/my-file.txt
 
 # Print object info
 $ python -m obs_client object-info my-container/my-file.txt
