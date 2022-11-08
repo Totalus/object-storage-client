@@ -5,14 +5,17 @@ from .SwiftClient import *
 from .S3Client import *
 
 
+CLI_VERSION = 0.1
+
 parser = argparse.ArgumentParser(
     prog="obs_client",
     description="Object Storage Client CLI tool that simplify managing object storage",
     epilog="This is an open source project: https://github.com/Totalus/object-storage-client"
 )
 
-
 subparsers = parser.add_subparsers(dest="command", required=True, metavar='<command>', title="Commands", help="Operation to execute")
+
+sp = subparsers.add_parser('version', help='Print CLI versino')
 
 sp = subparsers.add_parser('test-config', help="Test configuration and connectivity to the storage backend")
 sp = subparsers.add_parser('container-list', help="List containers (see also the `ls` command)")
@@ -94,6 +97,10 @@ def verify_configuration() -> ObjectStorageClient:
 
 
 if __name__ == "__main__":
+
+    if args.command == 'version':
+        print(f'Universal Object Storage CLI v{CLI_VERSION}')
+        exit()
 
     client = verify_configuration() # Returns the client (or exists the script on misconfiguration)
 
