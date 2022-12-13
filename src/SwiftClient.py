@@ -5,6 +5,7 @@
 #
 
 import os, requests
+from datetime import datetime
 
 from .ObjectStorageClient import *
 
@@ -168,7 +169,8 @@ class SwiftClient(ObjectStorageClient):
                 bytes=int(r.headers.get('Content-Length', 0)),
                 hash=r.headers.get('Etag'),
                 content_type=r.headers.get('Content-Type'),
-                metadata=meta
+                metadata=meta,
+                last_modified=float(r.headers.get('X-Timestamp'))
             )
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({object_name}) got status code: {r.status_code} {r.content}")
@@ -236,7 +238,20 @@ class SwiftClient(ObjectStorageClient):
                 if 'subdir' in o:
                     objects[i] = SubdirInfo(o['subdir'])
                 else:
-                    objects[i] = ObjectInfo(o.get('name'), o.get('bytes'), o.get('hash'), o.get('content_type'), None)
+                    # By default the endpoint returns a ISO string in the format "2022-12-13T18:05:00.378500" (UTC).
+                    # If the trailing +00 is not added, python assumes it is a local timestamp, not UTC.
+                    iso = o.get('last_modified')
+                    if '+' not in iso.split('T')[1] and '-' not in iso.split('T')[1]:
+                        iso += '+00:00' # Ensure we have an offset specified
+                    
+                    objects[i] = ObjectInfo(
+                        name=o.get('name'),
+                        bytes=o.get('bytes'),
+                        hash=o.get('hash'),
+                        content_type=o.get('content_type'),
+                        metadata=None,
+                        last_modified=datetime.fromisoformat(iso).timestamp()
+                    )
 
             if fetch_metadata:
                 for obj in objects:

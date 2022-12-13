@@ -1,5 +1,4 @@
 
-from abc import abstractclassmethod, abstractmethod
 from dataclasses import dataclass
 
 class ObjectStorageClientError(Exception):
@@ -27,6 +26,7 @@ class ObjectInfo:
     hash: str|None      # Hash (usualy md5)
     content_type: str|None
     metadata: dict[str, str]|None
+    last_modified: float|None  # Creation date (epoch seconds)
 
 @dataclass
 class SubdirInfo:

@@ -1,4 +1,4 @@
-import sys, unittest, os, io, random, string, warnings
+import sys, unittest, os, io, random, string, warnings, time
 
 from src.ObjectStorageClient import ContainerInfo, ContainerNotSpecified, ObjectInfo, ObjectStorageClient, SubdirInfo
 from src.S3Client import S3Client
@@ -84,10 +84,23 @@ class TestCases(unittest.TestCase):
         self.assertTrue(info.content_type, 'object_info() should return an ObjectInfo with "content_type" value that is not empty')
 
         self.assertIsNotNone(info.metadata, 'object_info() should return an ObjectInfo with "metadata" value that is not None')
-        self.assertIsInstance(info.metadata, dict, 'object_info() should return an ObjectInfo with "metadata" value that is a string')
+        self.assertIsInstance(info.metadata, dict, 'object_info() should return an ObjectInfo with "metadata" value that is a dict')
         self.assertFalse('Key1' in info.metadata, 'object_upload() should make sure metadata keys are lowercase before uploading and/or object_list() should return lowercase metadata keys')
         self.assertDictEqual(info.metadata, { 'key1': 'Value1' } , 'object_upload() should set the specified metadata')
         
+        self.assertIsNotNone(info.last_modified, 'object_info() should return an ObjectInfo with "last_modified" value that is not None')
+        self.assertIsInstance(info.last_modified, float, 'object_info() should return an ObjectInfo with "last_modified" value that is an float')
+        self.assertTrue(info.last_modified, 'object_info() should return an ObjectInfo with "last_modified" value that is not empty')
+        self.assertTrue((time.time() - info.last_modified) < 30, 'the object last_modified date should be coherent')
+
+        res = client.object_list(fetch_metadata=True, prefix=object_name)
+
+        info.metadata = None
+        res[0].metadata = None
+        print(info)
+        print(res[0])
+        self.assertEqual(info, res[0])
+
         # play with metadata
         print(f'Updating metadata')
         self.assertFalse(client.object_replace_metadata(random_string(20), { 'Key2': 'Value2' }), 'object_replace_metadata() should return false if the object does not exist')
