@@ -83,7 +83,8 @@ class S3Client(ObjectStorageClient):
                 bytes=res.get('ContentLength'),
                 content_type=res.get('ContentType'),
                 hash=res.get('ETag').replace('"',''),
-                metadata=res.get('Metadata')
+                metadata=res.get('Metadata'),
+                last_modified=res.get('LastModified').timestamp()
             )
         elif res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 404:
             return None
@@ -154,7 +155,14 @@ class S3Client(ObjectStorageClient):
         res = self.client.list_objects_v2(**args)
 
         if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
-            objects =  [ObjectInfo(o['Key'], o['Size'], o['ETag'], None, None) for o in res.get('Contents', [])]
+            objects =  [ObjectInfo(
+                            name=o['Key'],
+                            bytes=o['Size'],
+                            hash=o['ETag'],
+                            content_type=None,
+                            metadata=None,
+                            last_modified=o['LastModified'].timestamp()
+                        ) for o in res.get('Contents', [])]
             subdirs =  [SubdirInfo(o['Prefix']) for o in res.get('CommonPrefixes', [])]
             if fetch_metadata:
                 for i in range(0, len(objects)):

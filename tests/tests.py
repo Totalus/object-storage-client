@@ -95,10 +95,6 @@ class TestCases(unittest.TestCase):
 
         res = client.object_list(fetch_metadata=True, prefix=object_name)
 
-        info.metadata = None
-        res[0].metadata = None
-        print(info)
-        print(res[0])
         self.assertEqual(info, res[0])
 
         # play with metadata
