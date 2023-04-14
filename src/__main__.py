@@ -2,7 +2,7 @@
 #   CLI code
 #
 
-import argparse, os, sys
+import argparse, os, sys, configparser
 
 from .SwiftClient import *
 from .S3Client import *
@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(
 
 subparsers = parser.add_subparsers(dest="command", required=True, metavar='<command>', title="Commands", help="Operation to execute")
 
-sp = subparsers.add_parser('version', help='Print CLI versino')
+sp = subparsers.add_parser('version', help='Print CLI version')
 
 sp = subparsers.add_parser('test-config', help="Test configuration and connectivity to the storage backend")
 sp = subparsers.add_parser('container-list', help="List containers (see also the `ls` command)")
@@ -95,7 +95,12 @@ def verify_configuration() -> ObjectStorageClient:
 if __name__ == "__main__":
 
     if args.command == 'version':
-        print(f'Universal Object Storage CLI v{CLI_VERSION}')
+        print(f'Universal Object Storage CLI: {CLI_VERSION}')
+
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), '..', 'setup.cfg'))
+        version = config.get('metadata', 'version')
+        print(f'Universal Object Storage Lib: {version}')
         exit()
 
     client = verify_configuration() # Returns the client (or exits the script on misconfiguration)
