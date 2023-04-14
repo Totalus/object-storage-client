@@ -153,4 +153,4 @@ To add new storage backends, subclass the `ObjectStorageClient` class and implem
 The test suite helps to keep a consistent behavior for each implementation.
 
 - Test S3Client: `python -m tests.tests s3 <location>`
-- Test SwifClient: `python -m tests.tests swift <swift-storage-url>`
+- Test SwifClient: `python -m tests.tests swift <swift-region>`

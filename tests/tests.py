@@ -25,7 +25,7 @@ class TestCases(unittest.TestCase):
             client : ObjectStorageClient = S3Client(self.storage['location'])
         else:
             print(f'Creating Openstack Swift client')
-            client : ObjectStorageClient = SwiftClient(self.storage['url'])
+            client : ObjectStorageClient = SwiftClient(self.storage['region'])
 
         # container_create()
         print(f'Creating container')
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         if backend == 's3':
             TestCases.storage['location'] = sys.argv.pop()
         else:
-            TestCases.storage['url'] = sys.argv.pop()
+            TestCases.storage['region'] = sys.argv.pop()
 
         TestCases.storage['backend'] = sys.argv.pop()
 
