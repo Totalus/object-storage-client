@@ -33,14 +33,14 @@ The S3Client is based on `boto3` which picks up the credentials automatically fr
 ```py
 from obs_client import SwiftClient
 
-client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>")
+client = SwiftClient(region="<your-openstack-swift-container-region>")
 ```
 
 The client will automatically pick up the credentials if they are in the environment. You can also provide them manually:
 
 ```py
 # Provide the required credentials
-client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_here>",
+client = SwiftClient(region="<your-openstack-swift-container-region>",
     credentials={
         # Required credentials (example)
         "OS_AUTH_URL": "https://<auth-domain>/v3/"
@@ -53,7 +53,7 @@ client = SwiftClient(storage_url="https://<storage-domain>/v1/AUTH_<more_stuff_h
 )
 ```
 
-The above credentials are required to authenticate to the storage backend and retreive an authentication token. You can however provide directly a valid authentication token through `OS_AUTH_TOKEN` instead.
+The above credentials are required to authenticate to the storage backend and retreive an authentication token.
 
 ## API usage
 
@@ -91,7 +91,7 @@ Refer to [`ObjectStorageClient.py`](./src/ObjectStorageClient.py) for the full l
 
 ## CLI usage
 
-The library can also be used as a CLI tool to interact with your storage backend.
+The library can also be used as a CLI to interact with your storage backend.
 
 Quick usage example:
 ```bash
@@ -101,36 +101,47 @@ $ python -m obs_client --help
 # Print help for specific command
 $ python -m obs_client <command> --help
 
+# Since we're lazy, lets create an alias to avoid re-typing `python -m obs_client` each time
+alias obs='python -m obs_client'
+# Now we can use `obs` instead of `python -m obs_client`, much better
+
 # Test configuration and connectivity / print help on how to configure
-$ python -m obs_client test-config
+$ obs test-config
 
-# Configure storage backend
-export OS_STORAGE=s3
-export OS_S3_LOCATION=us-west-2
-
-# List containers
-$ python -m obs_client container-list
+# Configure storage backend (only one of the two below should be set)
+export OBS_SWIFT_REGION='GHB'     # For Openstack Swift
+export OS_S3_LOCATION='us-west-2' # For AWS
 
 # Once configured we can test again to see if it is connected
-$ python -m obs_client test-config
+$ obs test-config
 
-# Create container
-$ python -m obs_client container-create my-container
+# List containers
+$ obs container-list
 
-# Upload file (with metadata)
-$ python -m obs_client upload --file my-file.txt my-container/my-file.txt --meta key1=value1 --meta key2=value2
+# Create a container
+$ obs container-create my-container
 
-# Download file
-$ python -m obs_client download --file my-file.txt my-container/my-file.txt
+# Upload a file (with metadata)
+$ obs upload --file my-file.txt my-container/my-file.txt --meta key1=value1 --meta key2=value2
 
-# Print object info
-$ python -m obs_client object-info my-container/my-file.txt
+# Download a file
+$ obs download my-container/my-file.txt --file my-file.txt
+
+# Print object or container info
+$ obs info my-container
+$ obs info my-container/my-object.txt
+
+# List objects with a given prefix
+$ obs list my-container         # List all objects in my-container
+$ obs list my-container/obj_    # List all objects in my-container that have the prefix 'obj_'
 
 # Browse object storage as a file system
-$ python -m obs_client ls
-$ python -m obs_client ls my-container
-$ python -m obs_client ls my-container/my-*
+$ obs ls
+$ obs ls my-container
+$ obs ls my-container/my-*
 
+# There are more commands available, you can list them with the `--help` option
+$ obs --help
 ```
 
 ## Adding storage backend
