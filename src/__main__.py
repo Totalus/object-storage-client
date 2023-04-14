@@ -4,6 +4,8 @@
 
 import argparse, os, sys, configparser
 
+import pkg_resources
+
 from .SwiftClient import *
 from .S3Client import *
 
@@ -95,11 +97,6 @@ if __name__ == "__main__":
 
     if args.command == 'version':
         print(f'Universal Object Storage CLI: {CLI_VERSION}')
-
-        config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), '..', 'setup.cfg'))
-        version = config.get('metadata', 'version')
-        print(f'Universal Object Storage Lib: {version}')
         exit()
 
     client = verify_configuration() # Returns the client (or exits the script on misconfiguration)
