@@ -61,10 +61,8 @@ class SwiftClient(ObjectStorageClient):
         # OS_PROJECT_NAME and OS_PROJECT_ID are the new names for OS_TENANT_NAME and OS_TENANT_ID
         if self.OS_PROJECT_NAME == None: self.OS_PROJECT_NAME = self.OS_TENANT_NAME;
         if self.OS_PROJECT_ID == None: self.OS_PROJECT_ID = self.OS_TENANT_ID;
-
-        self.OS_AUTH_TOKEN = os.getenv("OS_AUTH_TOKEN") # Check if an auth token was provided in the environment
-
-        if not self.OS_AUTH_TOKEN and not self.OS_AUTH_URL:
+        
+        if not self.OS_AUTH_URL:
             print("The environment does not seem to contain OpenStack credentials or token")
             raise AuthorizationError
 
