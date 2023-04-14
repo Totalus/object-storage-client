@@ -8,7 +8,7 @@ from .SwiftClient import *
 from .S3Client import *
 
 
-CLI_VERSION = 0.1
+CLI_VERSION = 0.2
 
 parser = argparse.ArgumentParser(
     prog="obs_client",
@@ -30,9 +30,6 @@ sp = subparsers.add_parser('container-delete', help="Delete a container")
 sp.add_argument('container', metavar='<container>' , help="Container name")
 sp.add_argument('--force', action="store_true", help="Delete container and all of its objects")
 
-sp = subparsers.add_parser('container-info', help="Print container details")
-sp.add_argument('container', metavar='<container>' , help="Container name")
-
 sp = subparsers.add_parser('upload', help="Upload a file (or from stdin if --file unspecified)")
 sp.add_argument('--file', '-f', metavar='<file path>', help="Local file to upload")
 sp.add_argument('object', metavar='<object path>', help="Target object path. If --container is not specified, the first part of the <object path> is assumed to be the container name (i.e. `<object path> = <container name>/<object name>`)")
@@ -44,16 +41,15 @@ sp.add_argument('object', metavar='<object path>', help="Object to download (`<c
 sp.add_argument('--file', metavar='<file path>', help="Target file")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
-sp = subparsers.add_parser('object-info', help="Get object info")
-sp.add_argument('object', metavar='<object name>', help="Object name")
-sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
-
 sp = subparsers.add_parser('object-delete', help="Delete an object")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
 sp = subparsers.add_parser('ls', help="List containers and objects as if it was the file system.")
 sp.add_argument('path', nargs='?')
+
+sp = subparsers.add_parser('info', help="Get object or container info")
+sp.add_argument('path', metavar='<container>/<object>', help="Container or object path")
 
 # sp = subparsers.add_parser('object-set-metadata')
 # sp = subparsers.add_parser('object-delete-metadata')
@@ -143,31 +139,6 @@ if __name__ == "__main__":
 
         if client.container_delete(args.container, args.force):
             print('Container deleted:', args.container)
-    
-    elif args.command == "container-info":
-        info = client.container_info(args.container)
-
-        if info is None:
-            print(f'Container {args.container} does not exist')
-            exit()
-
-        if info.count is not None:
-            count = info.count
-        if info.bytes is not None:
-            size = info.bytes
-
-        if info.count is None or info.bytes is None:
-            info = client.container_list(args.container)[0]
-            if info.count is not None:
-                count = info.count
-            if info.bytes is not None:
-                size = info.bytes
-
-        print('Container:', info.name)
-        if count is not None:
-            print('Object count:', count)
-        if size is not None:
-            print('Total size (bytes):', size)
         
     elif args.command == "upload":
         object_path = args.object
@@ -220,28 +191,58 @@ if __name__ == "__main__":
             if not client.object_download(object_path, sys.stdout.buffer, container_name=container):
                 print('Download failed', file=sys.stderr)
 
-    elif args.command == "object-info":
-        object_path = args.object
-        if args.container is not None:
-            container = args.container
-        else:
-            # Get container from the object path
-            container = object_path.split('/')[0]
-            object_path = '/'.join(object_path.split('/')[1:])
+    elif args.command == "info":
+        path : str = args.path
+        
+        container = path.split('/')[0]
+        
+        if path.endswith('/') or '/' not in path:
+            # Can be a container
+            info = client.container_info(container)
 
-        info = client.object_info(object_path, container)
+            if info is not None:
+                if info.count is not None:
+                    count = info.count
+                if info.bytes is not None:
+                    size = info.bytes
 
-        print(f'   Container: {container}')
-        print(f'        Name: {info.name}')
-        print(f'        Size: {info.bytes} bytes')
-        print(f'Content-Type: {info.content_type}')
-        print(f'        Hash: {info.hash}')
-        if info.metadata is None or len(info.metadata.keys()) == 0:
-            print(f'    Metadata: (none)')
-        else:
-            print(f'    Metadata:')
-            for k in info.metadata:
-                print(f'       - {k} = {info.metadata[k]}')
+                if info.count is None or info.bytes is None:
+                    info = client.container_list(container)[0]
+                    if info.count is not None:
+                        count = info.count
+                    if info.bytes is not None:
+                        size = info.bytes
+
+                print(f'----- Container info -----')
+                print('Container Name     :', info.name)
+                if count is not None:
+                    print('Object count       :', count)
+                if size is not None:
+                    print('Total size (bytes) :', size)
+            exit()
+
+        if '/' in path:
+            # Could be an object
+            object = '/'.join(path.split('/')[1:])
+            info = client.object_info(object_name=object, container_name=container)
+
+            if info is not None:
+                print(f'----- Object info -----')
+                print(f'Object Name  : {info.name}')
+                print(f'Container    : {container}')
+                print(f'Size         : {info.bytes} bytes')
+                print(f'Content-Type : {info.content_type}')
+                print(f'Hash         : {info.hash}')
+                if info.metadata is None or len(info.metadata.keys()) == 0:
+                    print(f'Metadata     : (none)')
+                else:
+                    print(f'Metadata     :')
+                    for k in info.metadata:
+                        print(f' - {k} = "{info.metadata[k]}"')
+                exit()
+
+        print(f'Specified object or container not found: {path}')
+        exit()
 
     elif args.command == "object-delete":
         object_path = args.object
