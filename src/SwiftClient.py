@@ -11,8 +11,9 @@ from .ObjectStorageClient import *
 
 class SwiftClient(ObjectStorageClient):
 
-    def __init__(self, storage_url: str, credentials: dict = {}) -> None:
-        self.OBJECT_STORAGE_URL = storage_url[0:-1] if storage_url.endswith('/') else storage_url # Remove trailing /
+    def __init__(self, region: str, credentials: dict = {}) -> None:
+        self.OBJECT_STORAGE_URL = None
+        self.region = region
         self.session = requests.Session()
         self.session.hooks = {'response': [self._response_hook]} # Set a response hook to handle authentication errors
         self.authenticate(credentials)
@@ -95,12 +96,25 @@ class SwiftClient(ObjectStorageClient):
         })
 
         if r.status_code == 201:
+            # Retreive the auth header from the server reply
             self.OS_AUTH_TOKEN = r.headers.get('X-Subject-Token')
+            # Assign the auth header to the client session
             self.session.headers['X-Auth-Token'] = self.OS_AUTH_TOKEN
+
+            # Retreive the storage URL from the server reply
+            self.OBJECT_STORAGE_URL = None
+            catalog = r.json().get('token', {}).get('catalog', [])
+            endpoints = next((e['endpoints'] for e in catalog if e['type'] == 'object-store'), None)
+            if endpoints is not None:
+                self.OBJECT_STORAGE_URL = next((e['url'] for e in endpoints if e['interface'] == 'public' and e['region'] == self.region), None)
+
+            if self.OBJECT_STORAGE_URL is None:
+                raise ObjectStorageClientError(f"Storage URL not found in server reply for region '{self.region}'")
+
             return True
         else:
-            print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
-            raise AuthorizationError
+            # print(f"AuthenticationRequestFailed: HttpResponseStatus={r.status_code} with content {r.content}")
+            raise AuthorizationError(f"HttpResponseStatus={r.status_code} ResponseContent={r.content}")
 
     def container_info(self, container_name: str) -> ContainerInfo|None:
         url = f"{self.OBJECT_STORAGE_URL}/{container_name}"

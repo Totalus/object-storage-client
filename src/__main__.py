@@ -1,3 +1,6 @@
+#
+#   CLI code
+#
 
 import argparse, os, sys
 
@@ -59,40 +62,33 @@ sp.add_argument('path', nargs='?')
 args = parser.parse_args()
 
 CONFIGURATION_HELP_TEXT = """
-# For AWS S3 backend
-    Set the following environment variables: 
-        - OBS_STORAGE=s3
-        - OBS_S3_LOCATION=<your-aws-location>
-    Ensure your AWS credentials are available
+# For AWS S3
+    - Set the following environment variable: export OBS_S3_LOCATION=<your-aws-location>
+    - Ensure your AWS credentials are available
 
 # For Openstack Swift
-    Set the following environment variables:
-        - OBS_STORAGE=swift
-        - OBS_SWIFT_URL=<your-openstack-swift-storage-url>
+    - Set the following environment variables: export OBS_SWIFT_REGION=<your-openstack-swift-storage-region>
+    - Ensure your OpenStack credentials are available in the environment
 """
 
 def verify_configuration() -> ObjectStorageClient:
-    storage_type = os.environ.get('OBS_STORAGE')
-    if storage_type is None:
-        print('Storage type not configured. Run the `test-config` command.')
+
+    swift_region = os.environ.get('OBS_SWIFT_REGION')
+    s3_location = os.environ.get('OBS_S3_LOCATION')
+
+    if swift_region is not None and s3_location is not None:
+        print('OBS_SWIFT_REGION and OBS_S3_LOCATION cannot be both defined in the environment')
         print(CONFIGURATION_HELP_TEXT)
         exit()
-    elif storage_type.lower() == 'swift':
-        if os.environ.get('OBS_SWIFT_URL') is None:
-            print('OBS_SWIFT_URL envrionment variable must be defined when using OpenStack Swift storage backend (OBS_STORAGE=swift)')
-            exit()
-    elif storage_type.lower() == 's3':
-        if os.environ.get('OBS_S3_LOCATION') is None:
-            print('OBS_S3_LOCATION envrionment variable must be defined when using AWS S3 (OBS_STORAGE=s3)')
-            exit()
-    else:
-        print('Unknow storage backend:', storage_type)
+    
+    if swift_region is None and s3_location is None:
+        print('Storage backend not configured:')
         print(CONFIGURATION_HELP_TEXT)
         exit()
 
-    if storage_type.lower() == "swift":
-        return SwiftClient(storage_url=os.environ.get('OBS_SWIFT_URL'))
-    elif storage_type.lower() == "s3":
+    if swift_region is not None:
+        return SwiftClient(region=os.environ.get('OBS_SWIFT_REGION'))
+    elif s3_location is not None:
         return S3Client(location=os.environ.get('OBS_S3_LOCATION'))
 
 
@@ -102,15 +98,14 @@ if __name__ == "__main__":
         print(f'Universal Object Storage CLI v{CLI_VERSION}')
         exit()
 
-    client = verify_configuration() # Returns the client (or exists the script on misconfiguration)
+    client = verify_configuration() # Returns the client (or exits the script on misconfiguration)
 
     if args.command == "test-config":
-        storage_type = os.environ.get('OBS_STORAGE') # Should be valid at this point
-        if storage_type.lower() == 'swift':
-            print(f'Connecting to OpenStack Swift (url={os.environ.get("OBS_SWIFT_URL")})')
-        elif storage_type.lower() == 's3':
-            print('Connecting to AWS S3')
-        
+        if isinstance(client, SwiftClient):
+            print(f'Connecting to OpenStack Swift (region={client.region})')
+        elif isinstance(client, S3Client):
+            print(f'Connecting to AWS S3 (location={client.location})')
+
         client.container_list() # Assume it throws an error on failure
         print('Connection is working!')
         
