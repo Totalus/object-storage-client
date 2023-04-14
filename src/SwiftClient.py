@@ -168,7 +168,7 @@ class SwiftClient(ObjectStorageClient):
             return False
 
 
-    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo:
+    def object_info(self, object_name: str, container_name: str = None) -> ObjectInfo|None:
         """Return an objet's info (including metadata)"""
         url = f"{self.OBJECT_STORAGE_URL}{self.object_path(object_name, container_name)}"
         r = self.session.head(url)
@@ -186,6 +186,8 @@ class SwiftClient(ObjectStorageClient):
                 metadata=meta,
                 last_modified=float(r.headers.get('X-Timestamp'))
             )
+        elif r.status_code == 204:
+            return None
         elif r.status_code != 404:
             print(f"ERROR: get_object_info({object_name}) got status code: {r.status_code} {r.content}")
 
