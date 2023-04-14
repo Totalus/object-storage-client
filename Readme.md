@@ -9,9 +9,9 @@ Storage backend currently supported:
 
 ## Install / Upgrade
 
-Latest stable version (v1): `pip install --upgrade https://github.com/Totalus/object-storage-client/tarball/v1`
+Latest stable version (v2): `pip install --upgrade https://github.com/Totalus/object-storage-client/tarball/v2`
 
-Specific release: `pip install --upgrade <release-tar-gz>` (available [releases](https://github.com/Totalus/object-storage-client/archive/refs/tags/1.0.0.tar.gz))
+Specific release: `pip install --upgrade <release-tar-gz>` (available [releases](https://github.com/Totalus/object-storage-client/archive/refs/tags/2.0.0.tar.gz))
 
 ## Storage backends
 
