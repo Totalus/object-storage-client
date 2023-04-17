@@ -268,7 +268,8 @@ if __name__ == "__main__":
             res = client.container_list()
 
             print(f'--- {len(res)} containers ---')
-            maxLen = max([ len(i.name) for i in res])
+            if len(res) > 0:
+                maxLen = max([ len(i.name) for i in res])
             for i in res:
                 size_str = (str(round(i.bytes/1024/1024)) + ' Mb').rjust(10)
                 print(f"{i.name.ljust(maxLen + 10)} {size_str} ({i.count} objects)")
@@ -284,7 +285,8 @@ if __name__ == "__main__":
             res = client.object_list(container_name=container, delimiter='/', prefix=object_path)
             prefix_to_remove = '/'.join(object_path.split('/')[0:-1])
             if len(prefix_to_remove) > 0: prefix_to_remove += '/'
-            maxLen = max([ len(i.subdir if type(i) == SubdirInfo else i.name) for i in res])
+            if len(res) > 0:
+                maxLen = max([ len(i.subdir if type(i) == SubdirInfo else i.name) for i in res])
             for i in res:
                 if type(i) == SubdirInfo:
                     subdir = i.subdir[len(prefix_to_remove):]
@@ -298,7 +300,8 @@ if __name__ == "__main__":
             res = client.container_list()
 
             print(f'--- {len(res)} containers ---')
-            maxLen = max([ len(i.name) for i in res])
+            if len(res) > 0:
+                maxLen = max([ len(i.name) for i in res])
             for i in res:
                 size_str = (str(round(i.bytes/1024/1024)) + ' Mb').rjust(10)
                 print(f"{i.name.ljust(maxLen + 10)} {size_str} ({i.count} objects)")
@@ -310,7 +313,8 @@ if __name__ == "__main__":
 
             print(f'--- {len(res)} objects ---')
 
-            maxLen = max([ len(i.subdir if type(i) == SubdirInfo else i.name) for i in res])
+            if len(res) > 0:
+                maxLen = max([ len(i.subdir if type(i) == SubdirInfo else i.name) for i in res])
             for i in res:
                 if type(i) == SubdirInfo:
                     print(f'{i.subdir}')
