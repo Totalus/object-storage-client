@@ -10,7 +10,7 @@ from .SwiftClient import *
 from .S3Client import *
 
 
-CLI_VERSION = 0.2
+CLI_VERSION = 0.3
 
 parser = argparse.ArgumentParser(
     prog="obs_client",
