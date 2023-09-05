@@ -2,15 +2,14 @@
 #   CLI code
 #
 
-import argparse, os, sys, configparser
-
-import pkg_resources
+import argparse, os, sys
 
 from .SwiftClient import *
 from .S3Client import *
 
 
-CLI_VERSION = 0.3
+CLI_VERSION = "0.3"
+LIB_VERSION = "2.0.2" # Sync with versino in setup.cfg
 
 parser = argparse.ArgumentParser(
     prog="obs_client",
@@ -20,7 +19,7 @@ parser = argparse.ArgumentParser(
 
 subparsers = parser.add_subparsers(dest="command", required=True, metavar='<command>', title="Commands", help="Operation to execute")
 
-sp = subparsers.add_parser('version', help='Print CLI version')
+sp = subparsers.add_parser('version', help='Print version')
 
 sp = subparsers.add_parser('test-config', help="Test configuration and connectivity to the storage backend")
 sp = subparsers.add_parser('container-list', help="List containers (see also the `ls` command)")
@@ -97,6 +96,7 @@ if __name__ == "__main__":
 
     if args.command == 'version':
         print(f'Universal Object Storage CLI: {CLI_VERSION}')
+        print(f'Universal Object Storage LIB: {LIB_VERSION}')
         exit()
 
     client = verify_configuration() # Returns the client (or exits the script on misconfiguration)
