@@ -172,8 +172,8 @@ class SwiftClient(ObjectStorageClient):
         r = self.session.head(url)
         meta = {}
         for h in r.headers:
-            if h.startswith('X-Object-Meta-'):
-                meta[h.removeprefix('X-Object-Meta-').lower()] = r.headers[h]
+            if h.lower().startswith('x-object-meta-'):
+                meta[h.lower().removeprefix('x-object-meta-')] = r.headers[h]
         
         if r.status_code == 200:
             return ObjectInfo(
