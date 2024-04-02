@@ -13,9 +13,21 @@ from .ObjectStorageClient import *
 
 class S3Client(ObjectStorageClient):
     
-    def __init__(self, location):
-        self.client = boto3.client('s3')
+    def __init__(self, location, endpoint_url=None):
+        """
+        Initialize an S3 client
+
+        @param `location` Indicate the location (region)
+        @param `endpoint` Optionally specify an endpoint URL
+        """
+        self.client = boto3.client(
+            service_name='s3',
+            endpoint_url=endpoint_url,
+            region_name=location,
+        )
+
         self.location = location
+        self.endpoint_url = endpoint_url
     
     # Container related actions
     

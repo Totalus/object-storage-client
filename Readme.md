@@ -25,6 +25,8 @@ client = S3Client(location="us-west-2")
 
 The `location` parameter is mainly used by `container_create()` to decide where to create the container, but you can work with existing containers in any location.
 
+The `endpoint_url` parameter (optional) can be used to set a custom endpoint (for S3 compatible endpoints that are not hosted on AWS).
+
 The S3Client is based on `boto3` which picks up the credentials automatically from the environment or a credential file. Refer to its [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html).
 
 
@@ -108,9 +110,14 @@ alias obs='python -m obs_client'
 # Test configuration and connectivity / print help on how to configure
 $ obs test-config
 
-# Configure storage backend (only one of the two below should be set)
+# Configure storage backend (Swift example)
 export OBS_SWIFT_REGION='GHB'     # For Openstack Swift
-export OBS_S3_LOCATION='us-west-2' # For AWS
+
+# Configure storage backend (S3 example)
+export OBS_S3_LOCATION='us-west-2'
+export OBS_S3_ENDPOINT_URL="https://localhost"  # Optional
+
+# NOTE: Only one of OBS_SWIFT_REGION or OBS_S3_LOCATION should be set
 
 # Once configured we can test again to see if it is connected
 $ obs test-config

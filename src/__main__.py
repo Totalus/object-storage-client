@@ -65,6 +65,7 @@ CONFIGURATION_HELP_TEXT = """
 # For AWS S3
     - Set the following environment variable: export OBS_S3_LOCATION=<your-aws-location>
     - Ensure your AWS credentials are available
+    - Optionally set OBS_S3_ENDPOINT_URL=<custom-s3-endpoint-url> for non-AWS hosted S3 compatible storages
 
 # For Openstack Swift
     - Set the following environment variables: export OBS_SWIFT_REGION=<your-openstack-swift-storage-region>
@@ -89,8 +90,10 @@ def verify_configuration() -> ObjectStorageClient:
     if swift_region is not None:
         return SwiftClient(region=os.environ.get('OBS_SWIFT_REGION'))
     elif s3_location is not None:
-        return S3Client(location=os.environ.get('OBS_S3_LOCATION'))
-
+        return S3Client(
+            location=os.environ.get('OBS_S3_LOCATION'),
+            endpoint_url=os.environ.get('OBS_S3_ENDPOINT_URL')
+        )
 
 if __name__ == "__main__":
 
@@ -105,7 +108,7 @@ if __name__ == "__main__":
         if isinstance(client, SwiftClient):
             print(f'Connecting to OpenStack Swift (region={client.region})')
         elif isinstance(client, S3Client):
-            print(f'Connecting to AWS S3 (location={client.location})')
+            print(f'Connecting to AWS S3 (location={client.location}{f", endpoint={client.endpoint_url}" if client.endpoint_url else ""})')
 
         client.container_list() # Assume it throws an error on failure
         print('Connection is working!')
