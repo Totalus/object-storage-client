@@ -204,17 +204,13 @@ if __name__ == "__main__":
             info = client.container_info(container)
 
             if info is not None:
-                if info.count is not None:
-                    count = info.count
-                if info.bytes is not None:
-                    size = info.bytes
+                count = info.count
+                size = info.bytes
 
-                if info.count is None or info.bytes is None:
+                if count is None or bytes is None:
                     info = client.container_list(container)[0]
-                    if info.count is not None:
-                        count = info.count
-                    if info.bytes is not None:
-                        size = info.bytes
+                    count = count if count else info.count
+                    size = size if size else info.bytes
 
                 print(f'----- Container info -----')
                 print('Container Name     :', info.name)
@@ -274,8 +270,9 @@ if __name__ == "__main__":
             if len(res) > 0:
                 maxLen = max([ len(i.name) for i in res])
             for i in res:
-                size_str = (str(round(i.bytes/1024/1024)) + ' Mb').rjust(10)
-                print(f"{i.name.ljust(maxLen + 10)} {size_str} ({i.count} objects)")
+                size_str = "" if not i.bytes else f" {str(round(i.bytes/1024/1024))} Mb".rjust(10)
+                object_count_str = "" if not i.count else " ({i.count} objects)"
+                print(f"{i.name.ljust(maxLen + 10)}{size_str}{object_count_str}")
         else:
             container = args.path.split('/')[0]
             object_path: str = '/'.join(args.path.split('/')[1:])
@@ -306,8 +303,9 @@ if __name__ == "__main__":
             if len(res) > 0:
                 maxLen = max([ len(i.name) for i in res])
             for i in res:
-                size_str = (str(round(i.bytes/1024/1024)) + ' Mb').rjust(10)
-                print(f"{i.name.ljust(maxLen + 10)} {size_str} ({i.count} objects)")
+                size_str = "" if not i.bytes else f" {str(round(i.bytes/1024/1024))} Mb".rjust(10)
+                object_count_str = "" if not i.count else " ({i.count} objects)"
+                print(f"{i.name.ljust(maxLen + 10)}{size_str}{object_count_str}")
         else:
             container = args.path.split('/')[0]
             object_path: str = '/'.join(args.path.split('/')[1:])
