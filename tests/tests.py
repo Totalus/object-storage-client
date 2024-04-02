@@ -11,9 +11,7 @@ class TestCases(unittest.TestCase):
     container_name = None
     object_name = 'test-object-123456789'
 
-    storage = {
-        "type": None
-    }
+    storage = {}
 
     def test_suite_v2(self):
         warnings.simplefilter("ignore", ResourceWarning)
@@ -193,21 +191,33 @@ class TestCases(unittest.TestCase):
             client.container_delete(c.name, force=True)
         
 
+def printUsageAndExit():
+    print('Usage:')
+    print('   python -m tests.tests s3 <aws-location> [endpoint-url]')
+    print('   python -m tests.tests swift [swift-region]')
+    exit()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ['s3','swift']:
-        print('Usage:')
-        print('   python -m tests.tests s3 <aws-location>')
-        print('   python -m tests.tests swift <swift-storage-url>')
-        exit()
+
+    arguments = sys.argv[1:]
+    
+    if len(arguments) < 1 or arguments[0] not in ['s3','swift']:
+        printUsageAndExit()
+
+    backend = arguments[0]
+
+    if backend == 's3':
+        if len(arguments) < 3:
+            printUsageAndExit()
+        
+        TestCases.storage['location'] = arguments[1]
+        if len(arguments) > 3:
+            TestCases.storage['endpoint_url'] = arguments[2]
     else:
-        backend = sys.argv[1]
+        TestCases.storage['region'] = arguments[1]
 
-        if backend == 's3':
-            TestCases.storage['location'] = sys.argv.pop()
-        else:
-            TestCases.storage['region'] = sys.argv.pop()
-
-        TestCases.storage['backend'] = sys.argv.pop()
-
+    TestCases.storage['backend'] = arguments[0]
+    
+    sys.argv = sys.argv[:1] # Otherwise unittest.main() fails as it parses the arguments
+    
     unittest.main()
