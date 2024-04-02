@@ -110,7 +110,7 @@ $ obs test-config
 
 # Configure storage backend (only one of the two below should be set)
 export OBS_SWIFT_REGION='GHB'     # For Openstack Swift
-export OS_S3_LOCATION='us-west-2' # For AWS
+export OBS_S3_LOCATION='us-west-2' # For AWS
 
 # Once configured we can test again to see if it is connected
 $ obs test-config
