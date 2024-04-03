@@ -42,6 +42,11 @@ sp.add_argument('object', metavar='<object path>', help="Object to download (`<c
 sp.add_argument('--file', metavar='<file path>', help="Target file")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
 
+sp = subparsers.add_parser('object-download-url', help="Generate a signed temporary download link for an object")
+sp.add_argument('object', metavar='<object path>', help="Object to download (`<container name>/<object name>`, unless --container is specified)")
+sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
+sp.add_argument('--expires-in', '-e', metavar='<seconds>', help="Link will become invalid after this number of seconds")
+
 sp = subparsers.add_parser('object-delete', help="Delete an object")
 sp.add_argument('object', metavar='<object name>', help="Object name")
 sp.add_argument('--container', metavar='<container name>', help="Container name. Optionally you can specify the container name in the object path instead (ex: <container>/<object_name>)")
@@ -193,6 +198,19 @@ if __name__ == "__main__":
         else:
             if not client.object_download(object_path, sys.stdout.buffer, container_name=container):
                 print('Download failed', file=sys.stderr)
+
+    elif args.command == "object-download-url":
+        object_path = args.object
+        if args.container is not None:
+            container = args.container
+        else:
+            # Get container from the object path
+            container = object_path.split('/')[0]
+            object_path = '/'.join(object_path.split('/')[1:])
+
+        url = client.object_generate_download_url(object_path, container, expires_in_seconds=args.expires_in)
+        print(url)
+        
 
     elif args.command == "info":
         path : str = args.path
