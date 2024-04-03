@@ -8,6 +8,7 @@
 #   - For metadata, we use tags as they are more versatile and can be changed without re-uploading the entire object.
 
 import boto3, botocore
+from botocore.exceptions import ClientError
 
 from .ObjectStorageClient import *
 
@@ -200,10 +201,19 @@ class S3Client(ObjectStorageClient):
             print(f"S3Client: object_delete() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
             return False
 
+    def object_generate_download_url(self, object_name: str, container_name: str, expires_in_seconds: int = None) -> str|None :
+        try:
+            return self.client.generate_presigned_url(
+                ClientMethod='get_object',
+                Params={
+                    'Bucket': container_name,
+                    'Key': object_name,
+                },
+                ExpiresIn=expires_in_seconds
+            )
+        except ClientError:
+            return None
 
-
-
-    
 
 if __name__ == "__main__":
 

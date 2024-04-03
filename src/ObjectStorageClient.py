@@ -234,3 +234,11 @@ class ObjectStorageClient:
     def object_delete(self, object_name: str, container_name: str = None) -> bool:
         """Delete the specified object"""
         raise NotImplementedError
+    
+    def object_generate_download_url(self, object_name: str, container_name: str = None, expires_in_seconds: int = None) -> str|None :
+        """
+        Generate a signed download url for the specified object
+
+        @param `expires_in_seconds` Number of seconds after which the URL becomes invalid (24h by default). If set to `None`, the generated URL will not expire.
+        """
+        raise NotImplemented
