@@ -8,8 +8,8 @@ from .SwiftClient import *
 from .S3Client import *
 
 
-CLI_VERSION = "0.4"
-LIB_VERSION = "2.0.3" # Sync with versino in setup.cfg
+CLI_VERSION = "0.5"
+LIB_VERSION = "2.0.4" # Sync with version in setup.cfg
 
 parser = argparse.ArgumentParser(
     prog="obs_client",
