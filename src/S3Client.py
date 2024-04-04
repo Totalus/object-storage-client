@@ -14,7 +14,7 @@ from .ObjectStorageClient import *
 
 class S3Client(ObjectStorageClient):
     
-    def __init__(self, location, endpoint_url=None):
+    def __init__(self, location, endpoint_url=None, verify=True):
         """
         Initialize an S3 client
 
@@ -25,10 +25,12 @@ class S3Client(ObjectStorageClient):
             service_name='s3',
             endpoint_url=endpoint_url,
             region_name=location,
+            verify=verify
         )
 
         self.location = location
         self.endpoint_url = endpoint_url
+        self.verify = verify
     
     # Container related actions
     
