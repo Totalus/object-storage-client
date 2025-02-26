@@ -14,12 +14,13 @@ from .ObjectStorageClient import *
 
 class S3Client(ObjectStorageClient):
     
-    def __init__(self, location, endpoint_url=None):
+    def __init__(self, location, endpoint_url=None, verify_ssl=None):
         """
         Initialize an S3 client
 
         @param `location` Indicate the location (region)
         @param `endpoint` Optionally specify an endpoint URL
+        @param `verify_ssl` Set to `False` to ignore SSL verification
         """
         self.client = boto3.client(
             service_name='s3',
@@ -28,7 +29,8 @@ class S3Client(ObjectStorageClient):
             config=botocore.config.Config(
                 request_checksum_calculation="when_required",
                 response_checksum_validation="when_required"
-            )
+            ),
+            verify=verify_ssl
         )
 
         self.location = location
