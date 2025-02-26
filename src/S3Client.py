@@ -25,6 +25,10 @@ class S3Client(ObjectStorageClient):
             service_name='s3',
             endpoint_url=endpoint_url,
             region_name=location,
+            config=botocore.config.Config(
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required"
+            )
         )
 
         self.location = location
