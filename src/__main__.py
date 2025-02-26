@@ -289,7 +289,7 @@ if __name__ == "__main__":
                 maxLen = max([ len(i.name) for i in res])
             for i in res:
                 size_str = "" if not i.bytes else f" {str(round(i.bytes/1024/1024))} Mb".rjust(10)
-                object_count_str = "" if not i.count else " ({i.count} objects)"
+                object_count_str = "" if not i.count else f" ({i.count} objects)"
                 print(f"{i.name.ljust(maxLen + 10)}{size_str}{object_count_str}")
         else:
             container = args.path.split('/')[0]
@@ -322,7 +322,7 @@ if __name__ == "__main__":
                 maxLen = max([ len(i.name) for i in res])
             for i in res:
                 size_str = "" if not i.bytes else f" {str(round(i.bytes/1024/1024))} Mb".rjust(10)
-                object_count_str = "" if not i.count else " ({i.count} objects)"
+                object_count_str = "" if not i.count else f" ({i.count} objects)"
                 print(f"{i.name.ljust(maxLen + 10)}{size_str}{object_count_str}")
         else:
             container = args.path.split('/')[0]
