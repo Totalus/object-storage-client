@@ -20,7 +20,7 @@ class TestCases(unittest.TestCase):
 
         if(self.storage['backend'] == "s3"):
             print(f'Creating S3 client')
-            client : ObjectStorageClient = S3Client(self.storage['location'])
+            client : ObjectStorageClient = S3Client(self.storage['location'], self.storage.get('endpoint_url'))
         else:
             print(f'Creating Openstack Swift client')
             client : ObjectStorageClient = SwiftClient(self.storage['region'])
@@ -211,7 +211,7 @@ if __name__ == "__main__":
             printUsageAndExit()
         
         TestCases.storage['location'] = arguments[1]
-        if len(arguments) > 3:
+        if len(arguments) > 2:
             TestCases.storage['endpoint_url'] = arguments[2]
     else:
         TestCases.storage['region'] = arguments[1]
