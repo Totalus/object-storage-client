@@ -46,8 +46,6 @@ class TestCases(unittest.TestCase):
         containers = client.container_list(container_name)
         self.assertEqual(len(containers), 1, 'container_list(<prefix>) should return only the containers that start with <prefix>')
 
-        # TODO: object_list(fetch_metadata=True)
-
         # Select active container
         self.assertFalse(client.use_container(container_prefix + random_string(12)), 'use_container() should return false if container does not exist')
         self.assertTrue(client.use_container(container_name), 'use_container() should return true on success')
