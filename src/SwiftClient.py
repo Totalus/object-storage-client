@@ -6,6 +6,7 @@
 
 import os, requests
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .ObjectStorageClient import *
 
@@ -268,9 +269,17 @@ class SwiftClient(ObjectStorageClient):
                     )
 
             if fetch_metadata:
-                for obj in objects:
-                    if isinstance(obj, ObjectInfo):
-                        obj.metadata = self.object_info(obj.name, container_name=container_name).metadata
+                obj_indices = [i for i, obj in enumerate(objects) if isinstance(obj, ObjectInfo)]
+                with ThreadPoolExecutor() as executor:
+                    future_to_index = {executor.submit(self.object_info, objects[i].name, container_name=container_name): i for i in obj_indices}
+                    for future in as_completed(future_to_index):
+                        i = future_to_index[future]
+                        try:
+                            meta_obj = future.result()
+                            if meta_obj:
+                                objects[i].metadata = meta_obj.metadata
+                        except Exception:
+                            pass
 
             return objects
 

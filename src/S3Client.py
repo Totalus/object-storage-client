@@ -9,6 +9,7 @@
 
 import boto3, botocore
 from botocore.exceptions import ClientError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .ObjectStorageClient import *
 
@@ -183,9 +184,16 @@ class S3Client(ObjectStorageClient):
                             last_modified=o['LastModified'].timestamp()
                         ) for o in res.get('Contents', [])]
             subdirs =  [SubdirInfo(o['Prefix']) for o in res.get('CommonPrefixes', [])]
-            if fetch_metadata:
-                for i in range(0, len(objects)):
-                    objects[i] = self.object_info(objects[i].name)
+            if fetch_metadata and objects:
+                with ThreadPoolExecutor() as executor:
+                    future_to_index = {executor.submit(self.object_info, obj.name): i for i, obj in enumerate(objects)}
+                    for future in as_completed(future_to_index):
+                        i = future_to_index[future]
+                        try:
+                            objects[i] = future.result()
+                        except Exception as exc:
+                            # If object_info fails, keep the original object
+                            pass
             objects.extend(subdirs)
             return objects
         else:
