@@ -9,7 +9,7 @@ from .S3Client import *
 
 
 CLI_VERSION = "0.6"
-LIB_VERSION = "2.0.5" # Sync with version in setup.cfg
+LIB_VERSION = "2.0.6" # Sync with version in setup.cfg
 
 parser = argparse.ArgumentParser(
     prog="obs_client",
