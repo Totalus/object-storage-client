@@ -13,18 +13,22 @@ from .ObjectStorageClient import *
 
 class S3Client(ObjectStorageClient):
     
-    def __init__(self, location, endpoint_url=None, verify_ssl=None):
+    def __init__(self, location, endpoint_url=None, verify_ssl=None, aws_access_key_id=None, aws_secret_access_key=None):
         """
         Initialize an S3 client
 
         @param `location` Indicate the location (region)
-        @param `endpoint` Optionally specify an endpoint URL
+        @param `endpoint_url` Optionally specify an endpoint URL
         @param `verify_ssl` Set to `False` to ignore SSL verification
+        @param `aws_access_key_id` AWS access key ID
+        @param `aws_secret_access_key` AWS secret access key
         """
         self.client = boto3.client(
             service_name='s3',
             endpoint_url=endpoint_url,
             region_name=location,
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
             config=botocore.config.Config(
                 request_checksum_calculation="when_required",
                 response_checksum_validation="when_required"
