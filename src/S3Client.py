@@ -4,8 +4,6 @@
 #   API Reference: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
 #   (error handling) https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
 #
-#
-#   - For metadata, we use tags as they are more versatile and can be changed without re-uploading the entire object.
 
 import boto3, botocore
 from botocore.exceptions import ClientError
@@ -47,7 +45,13 @@ class S3Client(ObjectStorageClient):
         @return True on success, False on failure (ex: already exists)
         """
         try:
-            res = self.client.create_bucket(Bucket=container_name, CreateBucketConfiguration={ "LocationConstraint": self.location })
+            if self.location != 'auto':
+                res = self.client.create_bucket(
+                    Bucket=container_name,
+                    CreateBucketConfiguration={"LocationConstraint": self.location}
+                )
+            else:
+                res = self.client.create_bucket(Bucket=container_name)
             return res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200
         except:
             return False
