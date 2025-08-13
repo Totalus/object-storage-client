@@ -210,13 +210,13 @@ class S3Client(ObjectStorageClient):
                 Key=object_name,
             )
         except botocore.exceptions.ClientError as e:
-            print('object_delete()', e)
             res = e.response
 
-        if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 204:
+        status = res.get('ResponseMetadata', {}).get('HTTPStatusCode')
+        if status == 204 or status == 404:
             return True
         else:
-            print(f"S3Client: object_delete() status code: {res.get('ResponseMetadata', {}).get('HTTPStatusCode')}")
+            print(f"S3Client: object_delete() status code: {status}")
             return False
 
     def object_generate_download_url(self, object_name: str, container_name: str, expires_in_seconds: int = None) -> str|None :
