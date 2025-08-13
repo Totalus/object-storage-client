@@ -27,7 +27,18 @@ The `location` parameter is mainly used by `container_create()` to decide where 
 
 The `endpoint_url` parameter (optional) can be used to set a custom endpoint (for S3 compatible endpoints that are not hosted on AWS).
 
-The S3Client is based on `boto3` which picks up the credentials automatically from the environment or a credential file. Refer to its [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html).
+The S3Client is based on `boto3` which picks up the credentials automatically from the environment or a credential file. You can also provide credentials manually:
+
+```py
+# Provide credentials manually
+client = S3Client(
+    location="us-west-2",
+    aws_access_key_id="<your-access-key-id>",
+    aws_secret_access_key="<your-secret-access-key>"
+)
+```
+
+Refer to the boto3 [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) for more information about credential configuration.
 
 
 ### OpenStack Swift
